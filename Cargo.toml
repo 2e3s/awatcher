@@ -11,3 +11,7 @@ wayland-scanner = "0.30"
 wayland-backend = "0.1"
 chrono = "0.4.24"
 serde_json = "1.0.95"
+zbus = "3.11.1"
+clap = "4.2.1"
+log = { version = "0.4.17", features = ["std"] }
+env_logger = "0.10.0"
