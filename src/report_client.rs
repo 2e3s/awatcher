@@ -18,7 +18,7 @@ impl ReportClient {
 
         Self {
             config,
-            client: AwClient::new(&host, &port, "aw-watcher"),
+            client: AwClient::new(&host, &port, "awatcher"),
         }
     }
 

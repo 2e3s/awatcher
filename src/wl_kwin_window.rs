@@ -160,7 +160,7 @@ impl ActiveWindowInterface {
         resource_class: String,
         resource_name: String,
     ) {
-        debug!("Active window caption: '{caption}', class: '{resource_class}', name: '{resource_name}'");
+        debug!("Active window class: \"{resource_class}\", name: \"{resource_name}\", caption: \"{caption}\"");
         let mut active_window = self.active_window.lock().unwrap();
         active_window.caption = caption;
         active_window.resource_class = resource_class;
@@ -204,6 +204,7 @@ pub fn run(client: &Arc<ReportClient>) {
     });
     let _ = rx.recv().unwrap();
 
+    info!("Starting active window watcher");
     loop {
         if let Err(error) = send_heartbeat(client, &bucket_name, &active_window) {
             error!("Error on sending active window heartbeat: {error}");

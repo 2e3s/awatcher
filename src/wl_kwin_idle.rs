@@ -166,8 +166,6 @@ pub fn run(client: &Arc<ReportClient>) {
 
     client.create_bucket(&bucket_name, "afkstatus").unwrap();
 
-    info!("Starting idle watcher");
-
     let mut connection = WlEventConnection::connect().unwrap();
 
     let mut idle_state = IdleState::new(
@@ -179,6 +177,7 @@ pub fn run(client: &Arc<ReportClient>) {
     );
     connection.event_queue.roundtrip(&mut idle_state).unwrap();
 
+    info!("Starting idle watcher");
     loop {
         if let Err(e) = idle_state.run_loop(&mut connection) {
             error!("Error on idle iteration {e}");
