@@ -15,8 +15,8 @@ use fern::colors::{Color, ColoredLevelConfig};
 use report_client::ReportClient;
 use std::env;
 use std::{error::Error, str::FromStr, sync::Arc, thread};
-use wl_kwin_idle::run as run_kwin_idle;
-use wl_kwin_window::run as run_kwin_active_window;
+use wl_kwin_idle::KwinIdleWatcher;
+use wl_kwin_window::KwinWindowWatcher;
 
 type BoxedError = Box<dyn Error>;
 
@@ -47,6 +47,14 @@ fn setup_logger() -> Result<(), fern::InitError> {
     Ok(())
 }
 
+type WatcherConstructor = fn() -> Result<Box<dyn Watcher>, BoxedError>;
+trait Watcher: Send {
+    fn new() -> Result<Self, BoxedError>
+    where
+        Self: Sized;
+    fn watch(&mut self, client: &Arc<ReportClient>);
+}
+
 fn main() {
     setup_logger().unwrap();
 
@@ -60,14 +68,39 @@ fn main() {
     info!("Idle timeout: {} seconds", client.config.idle_timeout);
     info!("Polling period: {} seconds", client.config.poll_time_idle);
 
-    let client1 = Arc::clone(&client);
-    let idle_handler = thread::spawn(move || run_kwin_idle(&client1));
+    let mut thread_handlers = Vec::new();
+    let idle_watchers: Vec<WatcherConstructor> = vec![|| Ok(Box::new(KwinIdleWatcher::new()?))];
+    let window_watchers: Vec<WatcherConstructor> = vec![|| Ok(Box::new(KwinWindowWatcher::new()?))];
 
-    let client2 = Arc::clone(&client);
-    let active_window_handler = thread::spawn(move || run_kwin_active_window(&client2));
+    let filter_watcher = |watchers: Vec<WatcherConstructor>| {
+        watchers.iter().find_map(|watcher| match watcher() {
+            Ok(watcher) => Some(watcher),
+            Err(e) => {
+                info!("Watcher cannot run: {e}");
+                None
+            }
+        })
+    };
 
-    idle_handler.join().expect("Idle thread failed");
-    active_window_handler
-        .join()
-        .expect("Active window thread failed");
+    let idle_watcher = filter_watcher(idle_watchers);
+    if let Some(mut watcher) = idle_watcher {
+        let thread_client = Arc::clone(&client);
+        let idle_handler = thread::spawn(move || watcher.watch(&thread_client));
+        thread_handlers.push(idle_handler);
+    } else {
+        warn!("No supported idle handler is found");
+    }
+
+    let window_watcher = filter_watcher(window_watchers);
+    if let Some(mut watcher) = window_watcher {
+        let thread_client = Arc::clone(&client);
+        let active_window_handler = thread::spawn(move || watcher.watch(&thread_client));
+        thread_handlers.push(active_window_handler);
+    } else {
+        warn!("No supported active window handler is found");
+    }
+
+    for handler in thread_handlers {
+        handler.join().unwrap();
+    }
 }

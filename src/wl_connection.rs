@@ -37,7 +37,20 @@ where
         })
     }
 
-    pub fn get_idle_timeout(&self, timeout: u32) -> Result<OrgKdeKwinIdleTimeout, BoxedError>
+    pub fn get_kwin_idle(&self) -> Result<OrgKdeKwinIdle, BoxedError>
+    where
+        T: Dispatch<OrgKdeKwinIdle, ()>,
+    {
+        self.globals
+            .bind::<OrgKdeKwinIdle, T, ()>(
+                &self.queue_handle,
+                1..=OrgKdeKwinIdle::interface().version,
+                (),
+            )
+            .map_err(std::convert::Into::into)
+    }
+
+    pub fn get_kwin_idle_timeout(&self, timeout: u32) -> Result<OrgKdeKwinIdleTimeout, BoxedError>
     where
         T: Dispatch<OrgKdeKwinIdle, ()>
             + Dispatch<OrgKdeKwinIdleTimeout, ()>
@@ -47,11 +60,7 @@ where
             self.globals
                 .bind(&self.queue_handle, 1..=WlSeat::interface().version, ())?;
 
-        let idle: OrgKdeKwinIdle = self.globals.bind(
-            &self.queue_handle,
-            1..=OrgKdeKwinIdle::interface().version,
-            (),
-        )?;
+        let idle = self.get_kwin_idle()?;
         Ok(idle.get_idle_timeout(&seat, timeout, &self.queue_handle, ()))
     }
 }

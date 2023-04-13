@@ -1,3 +1,5 @@
+use crate::Watcher;
+
 /*
  * This uses a hack with KWin scripts in order to receive the active window.
  * For the moment of writing, KWin doesn't implement the appropriate protocols to get a top level window.
@@ -29,11 +31,6 @@ impl KWinScript {
     }
 
     fn load(&self) -> Result<(), BoxedError> {
-        if self.is_loaded()? {
-            warn!("KWin script is already loaded, unloading");
-            self.unload().unwrap();
-        }
-
         let path = temp_dir().join("kwin_window.js");
         std::fs::write(&path, KWIN_SCRIPT).unwrap();
 
@@ -168,49 +165,64 @@ impl ActiveWindowInterface {
     }
 }
 
-pub fn run(client: &Arc<ReportClient>) {
-    let hostname = gethostname::gethostname().into_string().unwrap();
-    let bucket_name = format!("aw-watcher-window_{hostname}");
-    let kwin_script = KWinScript::new(Connection::session().unwrap());
+pub struct KwinWindowWatcher {
+    kwin_script: KWinScript,
+}
 
-    kwin_script.load().unwrap();
+impl Watcher for KwinWindowWatcher {
+    fn new() -> Result<Self, BoxedError> {
+        let kwin_script = KWinScript::new(Connection::session()?);
+        if kwin_script.is_loaded()? {
+            warn!("KWin script is already loaded, unloading");
+            kwin_script.unload()?;
+        }
 
-    let active_window = Arc::new(Mutex::new(ActiveWindow {
-        caption: String::new(),
-        resource_name: String::new(),
-        resource_class: String::new(),
-    }));
-    let active_window_interface = ActiveWindowInterface {
-        active_window: Arc::clone(&active_window),
-    };
+        Ok(Self { kwin_script })
+    }
 
-    let (tx, rx) = channel();
-    thread::spawn(move || {
-        let result = (|| {
-            ConnectionBuilder::session()?
-                .name("com._2e3s.Awatcher")?
-                .serve_at("/com/_2e3s/Awatcher", active_window_interface)?
-                .build()
-        })();
-        match result {
-            Ok(connection) => {
-                tx.send(Ok(())).unwrap();
-                loop {
-                    connection.monitor_activity().wait();
+    fn watch(&mut self, client: &Arc<ReportClient>) {
+        let hostname = gethostname::gethostname().into_string().unwrap();
+        let bucket_name = format!("aw-watcher-window_{hostname}");
+
+        self.kwin_script.load().unwrap();
+
+        let active_window = Arc::new(Mutex::new(ActiveWindow {
+            caption: String::new(),
+            resource_name: String::new(),
+            resource_class: String::new(),
+        }));
+        let active_window_interface = ActiveWindowInterface {
+            active_window: Arc::clone(&active_window),
+        };
+
+        let (tx, rx) = channel();
+        thread::spawn(move || {
+            let result = (|| {
+                ConnectionBuilder::session()?
+                    .name("com._2e3s.Awatcher")?
+                    .serve_at("/com/_2e3s/Awatcher", active_window_interface)?
+                    .build()
+            })();
+            match result {
+                Ok(connection) => {
+                    tx.send(Ok(())).unwrap();
+                    loop {
+                        connection.monitor_activity().wait();
+                    }
                 }
+                Err(e) => tx.send(Err(e)),
             }
-            Err(e) => tx.send(Err(e)),
-        }
-    });
-    let _ = rx.recv().unwrap();
+        });
+        let _ = rx.recv().unwrap();
 
-    info!("Starting active window watcher");
-    loop {
-        if let Err(error) = send_heartbeat(client, &bucket_name, &active_window) {
-            error!("Error on sending active window heartbeat: {error}");
+        info!("Starting active window watcher");
+        loop {
+            if let Err(error) = send_heartbeat(client, &bucket_name, &active_window) {
+                error!("Error on sending active window heartbeat: {error}");
+            }
+            thread::sleep(time::Duration::from_secs(u64::from(
+                client.config.poll_time_window,
+            )));
         }
-        thread::sleep(time::Duration::from_secs(u64::from(
-            client.config.poll_time_window,
-        )));
     }
 }

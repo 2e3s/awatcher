@@ -1,3 +1,5 @@
+use crate::Watcher;
+
 use super::report_client::ReportClient;
 use super::wl_bindings;
 use super::wl_connection::WlEventConnection;
@@ -60,7 +62,6 @@ impl IdleState {
     }
 
     fn run_loop(&mut self, connection: &mut WlEventConnection<Self>) -> Result<(), BoxedError> {
-        // connection.event_queue.blocking_dispatch(self).unwrap();
         connection.event_queue.roundtrip(self).unwrap();
         let now = Utc::now();
         if !self.is_idle {
@@ -158,32 +159,46 @@ impl Dispatch<OrgKdeKwinIdleTimeout, ()> for IdleState {
     }
 }
 
-pub fn run(client: &Arc<ReportClient>) {
-    let bucket_name = format!(
-        "aw-watcher-afk_{}",
-        gethostname::gethostname().into_string().unwrap()
-    );
+pub struct KwinIdleWatcher {
+    connection: WlEventConnection<IdleState>,
+}
 
-    client.create_bucket(&bucket_name, "afkstatus").unwrap();
+impl Watcher for KwinIdleWatcher {
+    fn new() -> Result<Self, BoxedError> {
+        let connection: WlEventConnection<IdleState> = WlEventConnection::connect()?;
+        connection.get_kwin_idle()?;
 
-    let mut connection = WlEventConnection::connect().unwrap();
+        Ok(Self { connection })
+    }
 
-    let mut idle_state = IdleState::new(
-        connection
-            .get_idle_timeout(client.config.idle_timeout * 1000)
-            .unwrap(),
-        Arc::clone(client),
-        bucket_name,
-    );
-    connection.event_queue.roundtrip(&mut idle_state).unwrap();
+    fn watch(&mut self, client: &Arc<ReportClient>) {
+        let bucket_name = format!(
+            "aw-watcher-afk_{}",
+            gethostname::gethostname().into_string().unwrap()
+        );
 
-    info!("Starting idle watcher");
-    loop {
-        if let Err(e) = idle_state.run_loop(&mut connection) {
-            error!("Error on idle iteration {e}");
+        client.create_bucket(&bucket_name, "afkstatus").unwrap();
+
+        let mut idle_state = IdleState::new(
+            self.connection
+                .get_kwin_idle_timeout(client.config.idle_timeout * 1000)
+                .unwrap(),
+            Arc::clone(client),
+            bucket_name,
+        );
+        self.connection
+            .event_queue
+            .roundtrip(&mut idle_state)
+            .unwrap();
+
+        info!("Starting idle watcher");
+        loop {
+            if let Err(e) = idle_state.run_loop(&mut self.connection) {
+                error!("Error on idle iteration {e}");
+            }
+            thread::sleep(time::Duration::from_secs(u64::from(
+                client.config.poll_time_idle,
+            )));
         }
-        thread::sleep(time::Duration::from_secs(u64::from(
-            client.config.poll_time_idle,
-        )));
     }
 }
