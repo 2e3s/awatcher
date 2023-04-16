@@ -32,7 +32,7 @@ trait Watcher: Send {
 
 type BoxedWatcher = Box<dyn Watcher>;
 
-type WatcherConstructor = fn() -> Result<BoxedWatcher, BoxedError>;
+type WatcherConstructor = (&'static str, fn() -> Result<BoxedWatcher, BoxedError>);
 type WatcherConstructors = [WatcherConstructor];
 
 trait WatchersFilter {
@@ -41,21 +41,29 @@ trait WatchersFilter {
 
 impl WatchersFilter for WatcherConstructors {
     fn filter_first_supported(&self) -> Option<BoxedWatcher> {
-        self.iter().find_map(|watcher| match watcher() {
+        self.iter().find_map(|(name, watcher)| match watcher() {
             Ok(watcher) => Some(watcher),
             Err(e) => {
-                info!("Watcher cannot run: {e}");
+                info!("{name} cannot run: {e}");
                 None
             }
         })
     }
 }
 
-const IDLE_WATCHERS: [WatcherConstructor; 1] = [|| Ok(Box::new(KwinIdleWatcher::new()?))];
+macro_rules! watcher {
+    ($watcher_struct:ty) => {
+        (stringify!($watcher_struct), || {
+            Ok(Box::new(<$watcher_struct>::new()?))
+        })
+    };
+}
 
-const ACTIVE_WINDOW_WATCHERS: [WatcherConstructor; 2] = [
-    || Ok(Box::new(WlrForeignToplevelWatcher::new()?)),
-    || Ok(Box::new(KwinWindowWatcher::new()?)),
+const IDLE_WATCHERS: &[WatcherConstructor] = &[watcher!(KwinIdleWatcher)];
+
+const ACTIVE_WINDOW_WATCHERS: &[WatcherConstructor] = &[
+    watcher!(WlrForeignToplevelWatcher),
+    watcher!(KwinWindowWatcher),
 ];
 
 fn setup_logger() -> Result<(), fern::InitError> {
