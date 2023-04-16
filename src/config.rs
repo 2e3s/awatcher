@@ -8,6 +8,8 @@ pub struct Config {
     pub idle_timeout: u32,
     pub poll_time_idle: u32,
     pub poll_time_window: u32,
+    pub idle_bucket_name: String,
+    pub active_window_bucket_name: String,
 }
 
 impl Config {
@@ -35,12 +37,18 @@ impl Config {
             ])
             .get_matches();
 
+        let hostname = gethostname::gethostname().into_string().unwrap();
+        let idle_bucket_name = format!("aw-watcher-afk_{hostname}");
+        let active_window_bucket_name = format!("aw-watcher-window_{hostname}");
+
         Self {
             port: *matches.get_one("port").unwrap(),
             host: String::clone(matches.get_one("host").unwrap()),
             idle_timeout: *matches.get_one("idle-timeout").unwrap(),
             poll_time_idle: *matches.get_one("poll-time-idle").unwrap(),
             poll_time_window: *matches.get_one("poll-time-window").unwrap(),
+            idle_bucket_name,
+            active_window_bucket_name,
         }
     }
 }

@@ -2,7 +2,7 @@ use crate::Watcher;
 
 use super::report_client::ReportClient;
 use super::wl_bindings;
-use super::wl_connection::WlEventConnection;
+use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::BoxedError;
 use chrono::{DateTime, Duration, Utc};
 use std::{sync::Arc, thread, time};
@@ -22,7 +22,6 @@ struct IdleState {
     is_idle: bool,
     is_changed: bool,
     client: Arc<ReportClient>,
-    bucket_name: String,
 }
 
 impl Drop for IdleState {
@@ -33,18 +32,13 @@ impl Drop for IdleState {
 }
 
 impl IdleState {
-    fn new(
-        idle_timeout: OrgKdeKwinIdleTimeout,
-        client: Arc<ReportClient>,
-        bucket_name: String,
-    ) -> Self {
+    fn new(idle_timeout: OrgKdeKwinIdleTimeout, client: Arc<ReportClient>) -> Self {
         Self {
             idle_timeout,
             last_input_time: Utc::now(),
             is_idle: false,
             is_changed: false,
             client,
-            bucket_name,
         }
     }
 
@@ -61,8 +55,7 @@ impl IdleState {
         debug!("Resumed");
     }
 
-    fn run_loop(&mut self, connection: &mut WlEventConnection<Self>) -> Result<(), BoxedError> {
-        connection.event_queue.roundtrip(self).unwrap();
+    fn send_ping(&mut self) -> Result<(), BoxedError> {
         let now = Utc::now();
         if !self.is_idle {
             self.last_input_time = now;
@@ -71,14 +64,9 @@ impl IdleState {
         if self.is_changed {
             let result = if self.is_idle {
                 debug!("Reporting as changed to idle");
+                self.client
+                    .ping(false, self.last_input_time, Duration::zero())?;
                 self.client.ping(
-                    &self.bucket_name,
-                    false,
-                    self.last_input_time,
-                    Duration::zero(),
-                )?;
-                self.client.ping(
-                    &self.bucket_name,
                     true,
                     self.last_input_time + Duration::milliseconds(1),
                     Duration::zero(),
@@ -86,14 +74,9 @@ impl IdleState {
             } else {
                 debug!("Reporting as no longer idle");
 
+                self.client
+                    .ping(true, self.last_input_time, Duration::zero())?;
                 self.client.ping(
-                    &self.bucket_name,
-                    true,
-                    self.last_input_time,
-                    Duration::zero(),
-                )?;
-                self.client.ping(
-                    &self.bucket_name,
                     false,
                     self.last_input_time + Duration::milliseconds(1),
                     Duration::zero(),
@@ -103,44 +86,20 @@ impl IdleState {
             result
         } else if self.is_idle {
             trace!("Reporting as idle");
-            self.client.ping(
-                &self.bucket_name,
-                true,
-                self.last_input_time,
-                now - self.last_input_time,
-            )
+            self.client
+                .ping(true, self.last_input_time, now - self.last_input_time)
         } else {
             trace!("Reporting as not idle");
-            self.client.ping(
-                &self.bucket_name,
-                false,
-                self.last_input_time,
-                Duration::zero(),
-            )
+            self.client
+                .ping(false, self.last_input_time, Duration::zero())
         }
     }
 }
 
-macro_rules! subscribe_state {
-    ($struct_name:ty, $data_name:ty) => {
-        impl Dispatch<$struct_name, $data_name> for IdleState {
-            fn event(
-                _: &mut Self,
-                _: &$struct_name,
-                _: <$struct_name as Proxy>::Event,
-                _: &$data_name,
-                _: &Connection,
-                _: &QueueHandle<Self>,
-            ) {
-            }
-        }
-    };
-}
-
-subscribe_state!(wl_registry::WlRegistry, ());
-subscribe_state!(WlSeat, ());
-subscribe_state!(OrgKdeKwinIdle, ());
-subscribe_state!(wl_registry::WlRegistry, GlobalListContents);
+subscribe_state!(wl_registry::WlRegistry, GlobalListContents, IdleState);
+subscribe_state!(wl_registry::WlRegistry, (), IdleState);
+subscribe_state!(WlSeat, (), IdleState);
+subscribe_state!(OrgKdeKwinIdle, (), IdleState);
 
 impl Dispatch<OrgKdeKwinIdleTimeout, ()> for IdleState {
     fn event(
@@ -172,19 +131,11 @@ impl Watcher for KwinIdleWatcher {
     }
 
     fn watch(&mut self, client: &Arc<ReportClient>) {
-        let bucket_name = format!(
-            "aw-watcher-afk_{}",
-            gethostname::gethostname().into_string().unwrap()
-        );
-
-        client.create_bucket(&bucket_name, "afkstatus").unwrap();
-
         let mut idle_state = IdleState::new(
             self.connection
                 .get_kwin_idle_timeout(client.config.idle_timeout * 1000)
                 .unwrap(),
             Arc::clone(client),
-            bucket_name,
         );
         self.connection
             .event_queue
@@ -193,7 +144,9 @@ impl Watcher for KwinIdleWatcher {
 
         info!("Starting idle watcher");
         loop {
-            if let Err(e) = idle_state.run_loop(&mut self.connection) {
+            if let Err(e) = self.connection.event_queue.roundtrip(&mut idle_state) {
+                error!("Event queue is not processed: {e}");
+            } else if let Err(e) = idle_state.send_ping() {
                 error!("Error on idle iteration {e}");
             }
             thread::sleep(time::Duration::from_secs(u64::from(

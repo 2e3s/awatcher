@@ -7,6 +7,7 @@ mod config;
 mod report_client;
 mod wl_bindings;
 mod wl_connection;
+mod wl_foreign_toplevel;
 mod wl_kwin_idle;
 mod wl_kwin_window;
 
@@ -18,7 +19,44 @@ use std::{error::Error, str::FromStr, sync::Arc, thread};
 use wl_kwin_idle::KwinIdleWatcher;
 use wl_kwin_window::KwinWindowWatcher;
 
+use crate::wl_foreign_toplevel::WlrForeignToplevelWatcher;
+
 type BoxedError = Box<dyn Error>;
+
+trait Watcher: Send {
+    fn new() -> Result<Self, BoxedError>
+    where
+        Self: Sized;
+    fn watch(&mut self, client: &Arc<ReportClient>);
+}
+
+type BoxedWatcher = Box<dyn Watcher>;
+
+type WatcherConstructor = fn() -> Result<BoxedWatcher, BoxedError>;
+type WatcherConstructors = [WatcherConstructor];
+
+trait WatchersFilter {
+    fn filter_first_supported(&self) -> Option<BoxedWatcher>;
+}
+
+impl WatchersFilter for WatcherConstructors {
+    fn filter_first_supported(&self) -> Option<BoxedWatcher> {
+        self.iter().find_map(|watcher| match watcher() {
+            Ok(watcher) => Some(watcher),
+            Err(e) => {
+                info!("Watcher cannot run: {e}");
+                None
+            }
+        })
+    }
+}
+
+const IDLE_WATCHERS: [WatcherConstructor; 1] = [|| Ok(Box::new(KwinIdleWatcher::new()?))];
+
+const ACTIVE_WINDOW_WATCHERS: [WatcherConstructor; 2] = [
+    || Ok(Box::new(WlrForeignToplevelWatcher::new()?)),
+    || Ok(Box::new(KwinWindowWatcher::new()?)),
+];
 
 fn setup_logger() -> Result<(), fern::InitError> {
     let log_setting = env::var("AWATCHER_LOG").unwrap_or("info".to_string());
@@ -47,14 +85,6 @@ fn setup_logger() -> Result<(), fern::InitError> {
     Ok(())
 }
 
-type WatcherConstructor = fn() -> Result<Box<dyn Watcher>, BoxedError>;
-trait Watcher: Send {
-    fn new() -> Result<Self, BoxedError>
-    where
-        Self: Sized;
-    fn watch(&mut self, client: &Arc<ReportClient>);
-}
-
 fn main() {
     setup_logger().unwrap();
 
@@ -69,20 +99,8 @@ fn main() {
     info!("Polling period: {} seconds", client.config.poll_time_idle);
 
     let mut thread_handlers = Vec::new();
-    let idle_watchers: Vec<WatcherConstructor> = vec![|| Ok(Box::new(KwinIdleWatcher::new()?))];
-    let window_watchers: Vec<WatcherConstructor> = vec![|| Ok(Box::new(KwinWindowWatcher::new()?))];
 
-    let filter_watcher = |watchers: Vec<WatcherConstructor>| {
-        watchers.iter().find_map(|watcher| match watcher() {
-            Ok(watcher) => Some(watcher),
-            Err(e) => {
-                info!("Watcher cannot run: {e}");
-                None
-            }
-        })
-    };
-
-    let idle_watcher = filter_watcher(idle_watchers);
+    let idle_watcher = IDLE_WATCHERS.filter_first_supported();
     if let Some(mut watcher) = idle_watcher {
         let thread_client = Arc::clone(&client);
         let idle_handler = thread::spawn(move || watcher.watch(&thread_client));
@@ -91,7 +109,7 @@ fn main() {
         warn!("No supported idle handler is found");
     }
 
-    let window_watcher = filter_watcher(window_watchers);
+    let window_watcher = ACTIVE_WINDOW_WATCHERS.filter_first_supported();
     if let Some(mut watcher) = window_watcher {
         let thread_client = Arc::clone(&client);
         let active_window_handler = thread::spawn(move || watcher.watch(&thread_client));
@@ -101,6 +119,8 @@ fn main() {
     }
 
     for handler in thread_handlers {
-        handler.join().unwrap();
+        if handler.join().is_err() {
+            error!("Thread failed with error");
+        }
     }
 }

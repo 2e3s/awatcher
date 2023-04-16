@@ -7,6 +7,24 @@ use wayland_client::{
 };
 use wl_bindings::idle::org_kde_kwin_idle::OrgKdeKwinIdle;
 use wl_bindings::idle::org_kde_kwin_idle_timeout::OrgKdeKwinIdleTimeout;
+use wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_manager_v1::ZwlrForeignToplevelManagerV1;
+
+macro_rules! subscribe_state {
+    ($struct_name:ty, $data_name:ty, $state:ty) => {
+        impl Dispatch<$struct_name, $data_name> for $state {
+            fn event(
+                _: &mut Self,
+                _: &$struct_name,
+                _: <$struct_name as Proxy>::Event,
+                _: &$data_name,
+                _: &Connection,
+                _: &QueueHandle<Self>,
+            ) {
+            }
+        }
+    };
+}
+pub(crate) use subscribe_state;
 
 pub struct WlEventConnection<T> {
     pub globals: GlobalList,
@@ -35,6 +53,19 @@ where
             event_queue,
             queue_handle,
         })
+    }
+
+    pub fn get_foreign_toplevel_manager(&self) -> Result<ZwlrForeignToplevelManagerV1, BoxedError>
+    where
+        T: Dispatch<ZwlrForeignToplevelManagerV1, ()>,
+    {
+        self.globals
+            .bind::<ZwlrForeignToplevelManagerV1, T, ()>(
+                &self.queue_handle,
+                1..=OrgKdeKwinIdle::interface().version,
+                (),
+            )
+            .map_err(std::convert::Into::into)
     }
 
     pub fn get_kwin_idle(&self) -> Result<OrgKdeKwinIdle, BoxedError>

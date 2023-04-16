@@ -16,6 +16,10 @@ impl ReportClient {
         let host = config.host.clone();
         let port = config.port.to_string();
 
+        let client = AwClient::new(&host, &port, "awatcher");
+        Self::create_bucket(&client, &config.idle_bucket_name, "afkstatus").unwrap();
+        Self::create_bucket(&client, &config.active_window_bucket_name, "currentwindow").unwrap();
+
         Self {
             config,
             client: AwClient::new(&host, &port, "awatcher"),
@@ -24,7 +28,6 @@ impl ReportClient {
 
     pub fn ping(
         &self,
-        bucket_name: &str,
         is_idle: bool,
         timestamp: DateTime<Utc>,
         duration: Duration,
@@ -44,25 +47,39 @@ impl ReportClient {
 
         let pulsetime = f64::from(self.config.idle_timeout + self.config.poll_time_idle);
         self.client
-            .heartbeat(bucket_name, &event, pulsetime)
+            .heartbeat(&self.config.idle_bucket_name, &event, pulsetime)
             .map_err(|_| "Failed to send heartbeat")?;
 
         Ok(())
     }
 
-    pub fn heartbeat(&self, bucket_name: &str, event: &AwEvent) -> Result<(), BoxedError> {
+    pub fn send_active_window(&self, app_id: &str, title: &str) -> Result<(), BoxedError> {
+        let mut data = Map::new();
+        data.insert("app".to_string(), Value::String(app_id.to_string()));
+        data.insert("title".to_string(), Value::String(title.to_string()));
+        let event = AwEvent {
+            id: None,
+            timestamp: Utc::now(),
+            duration: Duration::zero(),
+            data,
+        };
+
         let interval_margin: f64 = f64::from(self.config.poll_time_idle + 1);
         self.client
-            .heartbeat(bucket_name, event, interval_margin)
+            .heartbeat(
+                &self.config.active_window_bucket_name,
+                &event,
+                interval_margin,
+            )
             .map_err(|_| "Failed to send heartbeat for active window".into())
     }
 
-    pub fn create_bucket(
-        &self,
+    fn create_bucket(
+        client: &AwClient,
         bucket_name: &str,
         bucket_type: &str,
     ) -> Result<(), Box<dyn Error>> {
-        self.client
+        client
             .create_bucket_simple(bucket_name, bucket_type)
             .map_err(|e| format!("Failed to create bucket {bucket_name}: {e}").into())
     }

@@ -7,9 +7,6 @@ use crate::Watcher;
  */
 use super::report_client::ReportClient;
 use super::BoxedError;
-use aw_client_rust::Event as AwEvent;
-use chrono::{Duration, Utc};
-use serde_json::{Map, Value};
 use std::env::temp_dir;
 use std::path::Path;
 use std::sync::{mpsc::channel, Arc, Mutex};
@@ -110,32 +107,14 @@ impl Drop for KWinScript {
     }
 }
 
-fn send_heartbeat(
+fn send_active_window(
     client: &ReportClient,
-    bucket_name: &str,
     active_window: &Arc<Mutex<ActiveWindow>>,
 ) -> Result<(), BoxedError> {
-    let event = {
-        let active_window = active_window.lock().map_err(|e| format!("{e}"))?;
-        let mut data = Map::new();
-        data.insert(
-            "app".to_string(),
-            Value::String(active_window.resource_class.clone()),
-        );
-        data.insert(
-            "title".to_string(),
-            Value::String(active_window.caption.clone()),
-        );
-        AwEvent {
-            id: None,
-            timestamp: Utc::now(),
-            duration: Duration::zero(),
-            data,
-        }
-    };
+    let active_window = active_window.lock().map_err(|e| format!("{e}"))?;
 
     client
-        .heartbeat(bucket_name, &event)
+        .send_active_window(&active_window.resource_class, &active_window.caption)
         .map_err(|_| "Failed to send heartbeat for active window".into())
 }
 
@@ -181,9 +160,6 @@ impl Watcher for KwinWindowWatcher {
     }
 
     fn watch(&mut self, client: &Arc<ReportClient>) {
-        let hostname = gethostname::gethostname().into_string().unwrap();
-        let bucket_name = format!("aw-watcher-window_{hostname}");
-
         self.kwin_script.load().unwrap();
 
         let active_window = Arc::new(Mutex::new(ActiveWindow {
@@ -217,7 +193,7 @@ impl Watcher for KwinWindowWatcher {
 
         info!("Starting active window watcher");
         loop {
-            if let Err(error) = send_heartbeat(client, &bucket_name, &active_window) {
+            if let Err(error) = send_active_window(client, &active_window) {
                 error!("Error on sending active window heartbeat: {error}");
             }
             thread::sleep(time::Duration::from_secs(u64::from(
