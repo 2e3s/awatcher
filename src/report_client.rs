@@ -12,18 +12,12 @@ pub struct ReportClient {
 }
 
 impl ReportClient {
-    pub fn new(config: Config) -> Self {
-        let host = config.host.clone();
-        let port = config.port.to_string();
+    pub fn new(config: Config) -> Result<Self, BoxedError> {
+        let client = AwClient::new(&config.host, &config.port.to_string(), "awatcher");
+        Self::create_bucket(&client, &config.idle_bucket_name, "afkstatus")?;
+        Self::create_bucket(&client, &config.active_window_bucket_name, "currentwindow")?;
 
-        let client = AwClient::new(&host, &port, "awatcher");
-        Self::create_bucket(&client, &config.idle_bucket_name, "afkstatus").unwrap();
-        Self::create_bucket(&client, &config.active_window_bucket_name, "currentwindow").unwrap();
-
-        Self {
-            config,
-            client: AwClient::new(&host, &port, "awatcher"),
-        }
+        Ok(Self { client, config })
     }
 
     pub fn ping(

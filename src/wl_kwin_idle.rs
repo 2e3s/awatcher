@@ -118,11 +118,11 @@ impl Dispatch<OrgKdeKwinIdleTimeout, ()> for IdleState {
     }
 }
 
-pub struct KwinIdleWatcher {
+pub struct IdleWatcher {
     connection: WlEventConnection<IdleState>,
 }
 
-impl Watcher for KwinIdleWatcher {
+impl Watcher for IdleWatcher {
     fn new() -> Result<Self, BoxedError> {
         let connection: WlEventConnection<IdleState> = WlEventConnection::connect()?;
         connection.get_kwin_idle()?;
@@ -147,7 +147,7 @@ impl Watcher for KwinIdleWatcher {
             if let Err(e) = self.connection.event_queue.roundtrip(&mut idle_state) {
                 error!("Event queue is not processed: {e}");
             } else if let Err(e) = idle_state.send_ping() {
-                error!("Error on idle iteration {e}");
+                error!("Error on idle iteration: {e}");
             }
             thread::sleep(time::Duration::from_secs(u64::from(
                 client.config.poll_time_idle,

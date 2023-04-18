@@ -144,11 +144,11 @@ impl ActiveWindowInterface {
     }
 }
 
-pub struct KwinWindowWatcher {
+pub struct WindowWatcher {
     kwin_script: KWinScript,
 }
 
-impl Watcher for KwinWindowWatcher {
+impl Watcher for WindowWatcher {
     fn new() -> Result<Self, BoxedError> {
         let kwin_script = KWinScript::new(Connection::session()?);
         if kwin_script.is_loaded()? {

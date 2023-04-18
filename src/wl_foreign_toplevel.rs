@@ -7,7 +7,6 @@ use super::report_client::ReportClient;
 use super::wl_bindings;
 use super::wl_connection::WlEventConnection;
 use super::BoxedError;
-use chrono::{DateTime, Utc};
 use wayland_client::{
     event_created_child, globals::GlobalListContents, protocol::wl_registry, Connection, Dispatch,
     Proxy, QueueHandle,
@@ -27,9 +26,6 @@ struct WindowData {
 struct ToplevelState {
     windows: HashMap<String, WindowData>,
     current_window_id: Option<String>,
-    _last_input_time: DateTime<Utc>,
-    _is_idle: bool,
-    _is_changed: bool,
     client: Arc<ReportClient>,
 }
 
@@ -38,9 +34,6 @@ impl ToplevelState {
         Self {
             windows: HashMap::new(),
             current_window_id: None,
-            _last_input_time: Utc::now(),
-            _is_idle: false,
-            _is_changed: false,
             client,
         }
     }
@@ -139,11 +132,11 @@ impl ToplevelState {
     }
 }
 
-pub struct WlrForeignToplevelWatcher {
+pub struct WindowWatcher {
     connection: WlEventConnection<ToplevelState>,
 }
 
-impl Watcher for WlrForeignToplevelWatcher {
+impl Watcher for WindowWatcher {
     fn new() -> Result<Self, BoxedError> {
         let connection: WlEventConnection<ToplevelState> = WlEventConnection::connect()?;
         connection.get_foreign_toplevel_manager()?;
@@ -164,7 +157,7 @@ impl Watcher for WlrForeignToplevelWatcher {
             if let Err(e) = self.connection.event_queue.roundtrip(&mut toplevel_state) {
                 error!("Event queue is not processed: {e}");
             } else if let Err(e) = toplevel_state.send_active_window() {
-                error!("Error on idle iteration {e}");
+                error!("Error on iteration: {e}");
             }
 
             thread::sleep(time::Duration::from_secs(u64::from(

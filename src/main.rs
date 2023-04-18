@@ -4,22 +4,22 @@
 extern crate log;
 
 mod config;
+mod kwin_window;
 mod report_client;
 mod wl_bindings;
 mod wl_connection;
 mod wl_foreign_toplevel;
 mod wl_kwin_idle;
-mod wl_kwin_window;
 
 use config::Config;
 use fern::colors::{Color, ColoredLevelConfig};
+use kwin_window::WindowWatcher as KwinWindowWatcher;
 use report_client::ReportClient;
 use std::env;
 use std::{error::Error, str::FromStr, sync::Arc, thread};
-use wl_kwin_idle::KwinIdleWatcher;
-use wl_kwin_window::KwinWindowWatcher;
+use wl_kwin_idle::IdleWatcher as WlKwinIdleWatcher;
 
-use crate::wl_foreign_toplevel::WlrForeignToplevelWatcher;
+use crate::wl_foreign_toplevel::WindowWatcher as WlrForeignToplevelWindowWatcher;
 
 type BoxedError = Box<dyn Error>;
 
@@ -59,10 +59,10 @@ macro_rules! watcher {
     };
 }
 
-const IDLE_WATCHERS: &[WatcherConstructor] = &[watcher!(KwinIdleWatcher)];
+const IDLE_WATCHERS: &[WatcherConstructor] = &[watcher!(WlKwinIdleWatcher)];
 
 const ACTIVE_WINDOW_WATCHERS: &[WatcherConstructor] = &[
-    watcher!(WlrForeignToplevelWatcher),
+    watcher!(WlrForeignToplevelWindowWatcher),
     watcher!(KwinWindowWatcher),
 ];
 
@@ -93,10 +93,10 @@ fn setup_logger() -> Result<(), fern::InitError> {
     Ok(())
 }
 
-fn main() {
-    setup_logger().unwrap();
+fn main() -> Result<(), BoxedError> {
+    setup_logger()?;
 
-    let client = ReportClient::new(Config::from_cli());
+    let client = ReportClient::new(Config::from_cli())?;
     let client = Arc::new(client);
 
     info!(
@@ -131,4 +131,5 @@ fn main() {
             error!("Thread failed with error");
         }
     }
+    Ok(())
 }
