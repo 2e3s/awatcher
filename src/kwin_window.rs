@@ -11,7 +11,6 @@ use std::env::temp_dir;
 use std::path::Path;
 use std::sync::{mpsc::channel, Arc, Mutex};
 use std::thread;
-use std::time;
 use zbus::blocking::{Connection, ConnectionBuilder};
 use zbus::dbus_interface;
 
@@ -196,9 +195,7 @@ impl Watcher for WindowWatcher {
             if let Err(error) = send_active_window(client, &active_window) {
                 error!("Error on sending active window heartbeat: {error}");
             }
-            thread::sleep(time::Duration::from_secs(u64::from(
-                client.config.poll_time_window,
-            )));
+            thread::sleep(client.config.poll_time_window);
         }
     }
 }

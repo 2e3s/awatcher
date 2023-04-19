@@ -5,7 +5,7 @@ use super::wl_bindings;
 use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::BoxedError;
 use chrono::{DateTime, Duration, Utc};
-use std::{sync::Arc, thread, time};
+use std::{sync::Arc, thread};
 use wayland_client::{
     globals::GlobalListContents,
     protocol::{wl_registry, wl_seat::WlSeat},
@@ -131,9 +131,10 @@ impl Watcher for IdleWatcher {
     }
 
     fn watch(&mut self, client: &Arc<ReportClient>) {
+        let timeout = u32::try_from(client.config.idle_timeout.as_secs() * 1000);
         let mut idle_state = IdleState::new(
             self.connection
-                .get_kwin_idle_timeout(client.config.idle_timeout * 1000)
+                .get_kwin_idle_timeout(timeout.unwrap())
                 .unwrap(),
             Arc::clone(client),
         );
@@ -149,9 +150,7 @@ impl Watcher for IdleWatcher {
             } else if let Err(e) = idle_state.send_ping() {
                 error!("Error on idle iteration: {e}");
             }
-            thread::sleep(time::Duration::from_secs(u64::from(
-                client.config.poll_time_idle,
-            )));
+            thread::sleep(client.config.poll_time_idle);
         }
     }
 }

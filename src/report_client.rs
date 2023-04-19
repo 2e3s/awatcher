@@ -39,7 +39,7 @@ impl ReportClient {
             data,
         };
 
-        let pulsetime = f64::from(self.config.idle_timeout + self.config.poll_time_idle);
+        let pulsetime = (self.config.idle_timeout + self.config.poll_time_idle).as_secs_f64();
         self.client
             .heartbeat(&self.config.idle_bucket_name, &event, pulsetime)
             .map_err(|_| "Failed to send heartbeat")?;
@@ -58,7 +58,7 @@ impl ReportClient {
             data,
         };
 
-        let interval_margin: f64 = f64::from(self.config.poll_time_idle + 1);
+        let interval_margin = self.config.poll_time_idle.as_secs_f64() + 1.0;
         self.client
             .heartbeat(
                 &self.config.active_window_bucket_name,

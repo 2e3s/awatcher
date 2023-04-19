@@ -10,6 +10,7 @@ mod wl_bindings;
 mod wl_connection;
 mod wl_foreign_toplevel;
 mod wl_kwin_idle;
+mod x11_screensaver_idle;
 
 use config::Config;
 use fern::colors::{Color, ColoredLevelConfig};
@@ -18,6 +19,7 @@ use report_client::ReportClient;
 use std::env;
 use std::{error::Error, str::FromStr, sync::Arc, thread};
 use wl_kwin_idle::IdleWatcher as WlKwinIdleWatcher;
+use x11_screensaver_idle::IdleWatcher as X11IdleWatcher;
 
 use crate::wl_foreign_toplevel::WindowWatcher as WlrForeignToplevelWindowWatcher;
 
@@ -59,7 +61,8 @@ macro_rules! watcher {
     };
 }
 
-const IDLE_WATCHERS: &[WatcherConstructor] = &[watcher!(WlKwinIdleWatcher)];
+const IDLE_WATCHERS: &[WatcherConstructor] =
+    &[watcher!(WlKwinIdleWatcher), watcher!(X11IdleWatcher)];
 
 const ACTIVE_WINDOW_WATCHERS: &[WatcherConstructor] = &[
     watcher!(WlrForeignToplevelWindowWatcher),
@@ -103,8 +106,14 @@ fn main() -> Result<(), BoxedError> {
         "Sending to server {}:{}",
         client.config.host, client.config.port
     );
-    info!("Idle timeout: {} seconds", client.config.idle_timeout);
-    info!("Polling period: {} seconds", client.config.poll_time_idle);
+    info!(
+        "Idle timeout: {} seconds",
+        client.config.idle_timeout.as_secs()
+    );
+    info!(
+        "Polling period: {} seconds",
+        client.config.poll_time_idle.as_secs()
+    );
 
     let mut thread_handlers = Vec::new();
 

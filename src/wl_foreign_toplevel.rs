@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::{sync::Arc, thread, time};
+use std::{sync::Arc, thread};
 
 use crate::{wl_connection::subscribe_state, Watcher};
 
@@ -160,9 +160,7 @@ impl Watcher for WindowWatcher {
                 error!("Error on iteration: {e}");
             }
 
-            thread::sleep(time::Duration::from_secs(u64::from(
-                client.config.poll_time_window,
-            )));
+            thread::sleep(client.config.poll_time_window);
         }
     }
 }

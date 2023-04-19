@@ -1,13 +1,13 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use clap::{arg, value_parser, Command};
 
 pub struct Config {
     pub port: u32,
     pub host: String,
-    pub idle_timeout: u32,
-    pub poll_time_idle: u32,
-    pub poll_time_window: u32,
+    pub idle_timeout: Duration,
+    pub poll_time_idle: Duration,
+    pub poll_time_window: Duration,
     pub idle_bucket_name: String,
     pub active_window_bucket_name: String,
 }
@@ -40,13 +40,16 @@ impl Config {
         let hostname = gethostname::gethostname().into_string().unwrap();
         let idle_bucket_name = format!("aw-watcher-afk_{hostname}");
         let active_window_bucket_name = format!("aw-watcher-window_{hostname}");
+        let poll_seconds_idle = *matches.get_one::<u32>("poll-time-idle").unwrap();
+        let poll_seconds_window = *matches.get_one::<u32>("poll-time-window").unwrap();
+        let idle_timeout_seconds = *matches.get_one::<u32>("idle-timeout").unwrap();
 
         Self {
             port: *matches.get_one("port").unwrap(),
             host: String::clone(matches.get_one("host").unwrap()),
-            idle_timeout: *matches.get_one("idle-timeout").unwrap(),
-            poll_time_idle: *matches.get_one("poll-time-idle").unwrap(),
-            poll_time_window: *matches.get_one("poll-time-window").unwrap(),
+            idle_timeout: Duration::from_secs(u64::from(idle_timeout_seconds)),
+            poll_time_idle: Duration::from_secs(u64::from(poll_seconds_idle)),
+            poll_time_window: Duration::from_secs(u64::from(poll_seconds_window)),
             idle_bucket_name,
             active_window_bucket_name,
         }
