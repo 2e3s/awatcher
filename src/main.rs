@@ -10,7 +10,9 @@ mod wl_bindings;
 mod wl_connection;
 mod wl_foreign_toplevel;
 mod wl_kwin_idle;
+mod x11_connection;
 mod x11_screensaver_idle;
+mod x11_window;
 
 use config::Config;
 use fern::colors::{Color, ColoredLevelConfig};
@@ -20,6 +22,7 @@ use std::env;
 use std::{error::Error, str::FromStr, sync::Arc, thread};
 use wl_kwin_idle::IdleWatcher as WlKwinIdleWatcher;
 use x11_screensaver_idle::IdleWatcher as X11IdleWatcher;
+use x11_window::WindowWatcher as X11WindowWatcher;
 
 use crate::wl_foreign_toplevel::WindowWatcher as WlrForeignToplevelWindowWatcher;
 
@@ -67,6 +70,7 @@ const IDLE_WATCHERS: &[WatcherConstructor] =
 const ACTIVE_WINDOW_WATCHERS: &[WatcherConstructor] = &[
     watcher!(WlrForeignToplevelWindowWatcher),
     watcher!(KwinWindowWatcher),
+    watcher!(X11WindowWatcher),
 ];
 
 fn setup_logger() -> Result<(), fern::InitError> {

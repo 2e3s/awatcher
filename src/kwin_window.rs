@@ -193,7 +193,7 @@ impl Watcher for WindowWatcher {
         info!("Starting active window watcher");
         loop {
             if let Err(error) = send_active_window(client, &active_window) {
-                error!("Error on sending active window heartbeat: {error}");
+                error!("Error on sending active window: {error}");
             }
             thread::sleep(client.config.poll_time_window);
         }

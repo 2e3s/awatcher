@@ -1,32 +1,21 @@
-use std::{env, sync::Arc, thread};
+use std::{sync::Arc, thread};
 
 use chrono::{Duration, Utc};
-use x11rb::connection::Connection;
-use x11rb::protocol::screensaver::ConnectionExt;
-use x11rb::rust_connection::RustConnection;
 
-use crate::{report_client::ReportClient, BoxedError, Watcher};
+use crate::{report_client::ReportClient, x11_connection::X11Connection, BoxedError, Watcher};
 
 pub struct IdleWatcher {
-    connection: RustConnection,
-    screen_root: u32,
+    connection: X11Connection,
 }
 
 impl IdleWatcher {
-    fn seconds_since_last_input(&self) -> Result<u32, BoxedError> {
-        let a = self.connection.screensaver_query_info(self.screen_root)?;
-        let b = a.reply()?;
-
-        Ok(b.ms_since_user_input / 1000)
-    }
-
     fn run(&self, is_idle: bool, client: &Arc<ReportClient>) -> Result<bool, BoxedError> {
         // The logic is rewritten from the original Python code:
         // https://github.com/ActivityWatch/aw-watcher-afk/blob/ef531605cd8238e00138bbb980e5457054e05248/aw_watcher_afk/afk.py#L73
         let duration_1ms: Duration = Duration::milliseconds(1);
         let duration_zero: Duration = Duration::zero();
 
-        let seconds_since_input = self.seconds_since_last_input()?;
+        let seconds_since_input = self.connection.seconds_since_last_input()?;
         let now = Utc::now();
         let time_since_input = Duration::seconds(i64::from(seconds_since_input));
         let last_input = now - time_since_input;
@@ -62,18 +51,12 @@ impl IdleWatcher {
 
 impl Watcher for IdleWatcher {
     fn new() -> Result<Self, BoxedError> {
-        if env::var("DISPLAY").is_err() {
-            warn!("DISPLAY is not set, setting to the default value \":0\"");
-            env::set_var("DISPLAY", ":0");
-        }
+        let connection = X11Connection::new()?;
 
-        let (connection, screen_num) = x11rb::connect(None)?;
-        let screen_root = connection.setup().roots[screen_num].root;
+        // Check if screensaver extension is supported
+        connection.seconds_since_last_input()?;
 
-        Ok(IdleWatcher {
-            connection,
-            screen_root,
-        })
+        Ok(IdleWatcher { connection })
     }
 
     fn watch(&mut self, client: &Arc<ReportClient>) {
