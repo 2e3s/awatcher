@@ -1,4 +1,4 @@
-use std::{thread, time::Duration};
+use std::thread;
 
 use crate::{report_client::ReportClient, x11_connection::X11Connection, BoxedError, Watcher};
 

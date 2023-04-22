@@ -103,7 +103,7 @@ fn setup_logger() -> Result<(), fern::InitError> {
 fn main() -> Result<(), BoxedError> {
     setup_logger()?;
 
-    let client = ReportClient::new(Config::from_cli())?;
+    let client = ReportClient::new(Config::from_cli()?)?;
     let client = Arc::new(client);
 
     info!(
@@ -115,7 +115,11 @@ fn main() -> Result<(), BoxedError> {
         client.config.idle_timeout.as_secs()
     );
     info!(
-        "Polling period: {} seconds",
+        "Idle polling period: {} seconds",
+        client.config.poll_time_idle.as_secs()
+    );
+    info!(
+        "Window polling period: {} seconds",
         client.config.poll_time_idle.as_secs()
     );
 
