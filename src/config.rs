@@ -1,10 +1,13 @@
 mod defaults;
 mod file_config;
+mod filters;
 
 use crate::BoxedError;
 use clap::{arg, value_parser, Command};
 use file_config::FileConfig;
 use std::{path::PathBuf, time::Duration};
+
+use self::filters::{Filter, Replacement};
 
 pub struct Config {
     pub port: u32,
@@ -14,6 +17,7 @@ pub struct Config {
     pub poll_time_window: Duration,
     pub idle_bucket_name: String,
     pub active_window_bucket_name: String,
+    filters: Vec<Filter>,
 }
 
 impl Config {
@@ -55,6 +59,17 @@ impl Config {
             poll_time_window: config.client.get_poll_time_window(),
             idle_bucket_name,
             active_window_bucket_name,
+            filters: config.client.filters,
         })
+    }
+
+    pub fn window_data_replacement(&self, app_id: &str, title: &str) -> Replacement {
+        for filter in &self.filters {
+            if let Some(replacement) = filter.replacement(app_id, title) {
+                return replacement;
+            }
+        }
+
+        Replacement::default()
     }
 }

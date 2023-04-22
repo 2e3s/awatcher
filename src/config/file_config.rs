@@ -9,6 +9,8 @@ use std::{
 
 use crate::{config::defaults, BoxedError};
 
+use super::filters::Filter;
+
 #[derive(Deserialize, DefaultFromSerde)]
 pub struct ServerConfig {
     #[serde(default = "defaults::port")]
@@ -18,6 +20,7 @@ pub struct ServerConfig {
 }
 
 #[derive(Deserialize, DefaultFromSerde)]
+#[serde(rename_all = "kebab-case")]
 pub struct ClientConfig {
     #[serde(default = "defaults::idle_timeout_seconds")]
     idle_timeout_seconds: u32,
@@ -25,6 +28,8 @@ pub struct ClientConfig {
     poll_time_idle_seconds: u32,
     #[serde(default = "defaults::poll_time_window_seconds")]
     poll_time_window_seconds: u32,
+    #[serde(default)]
+    pub filters: Vec<Filter>,
 }
 
 impl ClientConfig {
@@ -83,6 +88,19 @@ impl FileConfig {
 # idle-timeout-seconds={}
 # poll-time-idle-seconds={}
 # poll-time-window-seconds={}
+
+# Add as many filters as needed. The first matching filter stops the replacement.
+# There should be at least 1 match field, and at least 1 replace field.
+# Matches are case sensitive regular expressions between implici ^ and $, e.g.
+# - "." matches 1 any character
+# - ".*" matches any number of any characters
+# - ".+" matches 1 or more any characters.
+# - "word" is an exact match.
+# [[awatcher.filters]]
+# match-app-id = "navigator"
+# match-title = ".*Firefox.*"
+# replace-app-id = "firefox"
+# replace-title = "Unknown"
 "#,
                 defaults::port(),
                 defaults::host(),

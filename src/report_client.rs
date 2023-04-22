@@ -49,8 +49,23 @@ impl ReportClient {
 
     pub fn send_active_window(&self, app_id: &str, title: &str) -> Result<(), BoxedError> {
         let mut data = Map::new();
-        data.insert("app".to_string(), Value::String(app_id.to_string()));
-        data.insert("title".to_string(), Value::String(title.to_string()));
+        let mut data_insert = |k: &str, v: String| data.insert(k.to_string(), Value::String(v));
+
+        let replacement = self.config.window_data_replacement(app_id, title);
+        let inserted_app_id = if let Some(new_app_id) = replacement.replace_app_id {
+            trace!("Replacing app_id by {new_app_id}");
+            new_app_id
+        } else {
+            app_id.to_string()
+        };
+        let inserted_title = if let Some(new_title) = replacement.replace_title {
+            trace!("Replacing title of {inserted_app_id} by {new_title}");
+            new_title
+        } else {
+            title.to_string()
+        };
+        data_insert("app", inserted_app_id);
+        data_insert("title", inserted_title);
         let event = AwEvent {
             id: None,
             timestamp: Utc::now(),
