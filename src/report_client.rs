@@ -14,8 +14,11 @@ pub struct ReportClient {
 impl ReportClient {
     pub fn new(config: Config) -> Result<Self, BoxedError> {
         let client = AwClient::new(&config.host, &config.port.to_string(), "awatcher");
-        Self::create_bucket(&client, &config.idle_bucket_name, "afkstatus")?;
-        Self::create_bucket(&client, &config.active_window_bucket_name, "currentwindow")?;
+
+        if !config.mock_server {
+            Self::create_bucket(&client, &config.idle_bucket_name, "afkstatus")?;
+            Self::create_bucket(&client, &config.active_window_bucket_name, "currentwindow")?;
+        }
 
         Ok(Self { client, config })
     }
@@ -39,12 +42,14 @@ impl ReportClient {
             data,
         };
 
+        if self.config.mock_server {
+            return Ok(());
+        }
+
         let pulsetime = (self.config.idle_timeout + self.config.poll_time_idle).as_secs_f64();
         self.client
             .heartbeat(&self.config.idle_bucket_name, &event, pulsetime)
-            .map_err(|_| "Failed to send heartbeat")?;
-
-        Ok(())
+            .map_err(|_| "Failed to send heartbeat".into())
     }
 
     pub fn send_active_window(&self, app_id: &str, title: &str) -> Result<(), BoxedError> {
@@ -72,6 +77,10 @@ impl ReportClient {
             duration: Duration::zero(),
             data,
         };
+
+        if self.config.mock_server {
+            return Ok(());
+        }
 
         let interval_margin = self.config.poll_time_idle.as_secs_f64() + 1.0;
         self.client

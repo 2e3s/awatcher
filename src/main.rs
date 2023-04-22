@@ -106,10 +106,17 @@ fn main() -> Result<(), BoxedError> {
     let client = ReportClient::new(Config::from_cli()?)?;
     let client = Arc::new(client);
 
-    info!(
-        "Sending to server {}:{}",
-        client.config.host, client.config.port
-    );
+    if client.config.mock_server {
+        warn!(
+            "Not sending to server {}:{}",
+            client.config.host, client.config.port
+        );
+    } else {
+        info!(
+            "Sending to server {}:{}",
+            client.config.host, client.config.port
+        );
+    }
     info!(
         "Idle timeout: {} seconds",
         client.config.idle_timeout.as_secs()

@@ -3,7 +3,7 @@ mod file_config;
 mod filters;
 
 use crate::BoxedError;
-use clap::{arg, value_parser, Command};
+use clap::{arg, value_parser, ArgAction, Command};
 use file_config::FileConfig;
 use std::{path::PathBuf, time::Duration};
 
@@ -17,6 +17,7 @@ pub struct Config {
     pub poll_time_window: Duration,
     pub idle_bucket_name: String,
     pub active_window_bucket_name: String,
+    pub mock_server: bool,
     filters: Vec<Filter>,
 }
 
@@ -42,6 +43,9 @@ impl Config {
                 arg!(--"poll-time-window" <SECONDS> "Period between sending heartbeats to the server for idle activity")
                     .value_parser(value_parser!(u32))
                     .default_value(defaults::poll_time_window_seconds().to_string()),
+                arg!(--"mock-server" "Don't communicate to the ActivityWatch server")
+                    .value_parser(value_parser!(bool))
+                    .action(ArgAction::SetTrue),
             ])
             .get_matches();
 
@@ -60,6 +64,7 @@ impl Config {
             idle_bucket_name,
             active_window_bucket_name,
             filters: config.client.filters,
+            mock_server: *matches.get_one("mock-server").unwrap(),
         })
     }
 
