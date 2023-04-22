@@ -62,7 +62,21 @@ struct FileConfig {
 }
 
 impl FileConfig {
-    fn new(config_path: &Path) -> Result<Self, BoxedError> {
+    fn new(matches: &ArgMatches) -> Result<Self, BoxedError> {
+        let mut config_path: PathBuf = dirs::config_dir().ok_or("Config directory is unknown")?;
+        config_path.push("awatcher");
+        config_path.push("config.toml");
+        if matches.contains_id("config") {
+            let config_file = matches.get_one::<String>("config");
+            if let Some(path) = config_file {
+                if let Err(e) = std::fs::metadata(path) {
+                    warn!("Invalid config filename, using the default config: {e}");
+                } else {
+                    config_path = Path::new(path).to_path_buf();
+                }
+            }
+        }
+
         if config_path.exists() {
             debug!("Reading config at {}", config_path.display());
             let config_content = std::fs::read_to_string(config_path)
@@ -72,14 +86,14 @@ impl FileConfig {
         } else {
             let config = format!(
                 r#"# The commented values are the defaults on the file creation
-    [server]
-    # port = {}
-    # host = "{}"
-    [awatcher]
-    # idle-timeout-seconds={}
-    # poll-time-idle-seconds={}
-    # poll-time-window-seconds={}
-    "#,
+[server]
+# port = {}
+# host = "{}"
+[awatcher]
+# idle-timeout-seconds={}
+# poll-time-idle-seconds={}
+# poll-time-window-seconds={}
+"#,
                 default_port(),
                 default_host(),
                 default_idle_timeout_seconds(),
@@ -143,10 +157,6 @@ where
 
 impl Config {
     pub fn from_cli() -> Result<Self, BoxedError> {
-        let mut config_path: PathBuf = dirs::config_dir().ok_or("Config directory is unknown")?;
-        config_path.push("awatcher");
-        config_path.push("config.toml");
-
         let matches = Command::new("Activity Watcher")
             .version("0.1.0")
             .about("A set of ActivityWatch desktop watchers")
@@ -170,7 +180,7 @@ impl Config {
             ])
             .get_matches();
 
-        let mut config = FileConfig::new(config_path.as_path())?;
+        let mut config = FileConfig::new(&matches)?;
         config.merge_cli(&matches);
 
         let hostname = gethostname::gethostname().into_string().unwrap();
