@@ -180,15 +180,17 @@ impl Watcher for WindowWatcher {
             })();
             match result {
                 Ok(connection) => {
-                    tx.send(Ok(())).unwrap();
+                    tx.send(None).unwrap();
                     loop {
                         connection.monitor_activity().wait();
                     }
                 }
-                Err(e) => tx.send(Err(e)),
+                Err(e) => tx.send(Some(e)),
             }
         });
-        let _ = rx.recv().unwrap();
+        if let Some(error) = rx.recv().unwrap() {
+            panic!("Failed to run a DBus interface: {error}");
+        }
 
         info!("Starting active window watcher");
         loop {

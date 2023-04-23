@@ -16,15 +16,9 @@ mod x11_window;
 
 use config::Config;
 use fern::colors::{Color, ColoredLevelConfig};
-use kwin_window::WindowWatcher as KwinWindowWatcher;
 use report_client::ReportClient;
 use std::env;
 use std::{error::Error, str::FromStr, sync::Arc, thread};
-use wl_kwin_idle::IdleWatcher as WlKwinIdleWatcher;
-use x11_screensaver_idle::IdleWatcher as X11IdleWatcher;
-use x11_window::WindowWatcher as X11WindowWatcher;
-
-use crate::wl_foreign_toplevel::WindowWatcher as WlrForeignToplevelWindowWatcher;
 
 type BoxedError = Box<dyn Error>;
 
@@ -64,13 +58,15 @@ macro_rules! watcher {
     };
 }
 
-const IDLE_WATCHERS: &[WatcherConstructor] =
-    &[watcher!(WlKwinIdleWatcher), watcher!(X11IdleWatcher)];
+const IDLE_WATCHERS: &[WatcherConstructor] = &[
+    watcher!(wl_kwin_idle::IdleWatcher),
+    watcher!(x11_screensaver_idle::IdleWatcher),
+];
 
 const ACTIVE_WINDOW_WATCHERS: &[WatcherConstructor] = &[
-    watcher!(WlrForeignToplevelWindowWatcher),
-    watcher!(KwinWindowWatcher),
-    watcher!(X11WindowWatcher),
+    watcher!(wl_foreign_toplevel::WindowWatcher),
+    watcher!(kwin_window::WindowWatcher),
+    watcher!(x11_window::WindowWatcher),
 ];
 
 fn setup_logger() -> Result<(), fern::InitError> {
