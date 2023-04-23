@@ -57,7 +57,7 @@ impl Config {
 
         Ok(Self {
             port: config.server.port,
-            host: config.server.host.clone(),
+            host: config.server.host,
             idle_timeout: config.client.get_idle_timeout(),
             poll_time_idle: config.client.get_poll_time_idle(),
             poll_time_window: config.client.get_poll_time_window(),

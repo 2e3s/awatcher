@@ -125,31 +125,32 @@ impl FileConfig {
     }
 
     fn merge_cli(&mut self, matches: &ArgMatches) {
-        self.client.poll_time_idle_seconds = get_arg_value(
+        get_arg_value(
             "poll-time-idle",
             matches,
-            self.client.poll_time_idle_seconds,
+            &mut self.client.poll_time_idle_seconds,
         );
-        self.client.poll_time_window_seconds = get_arg_value(
+        get_arg_value(
             "poll-time-window",
             matches,
-            self.client.poll_time_window_seconds,
+            &mut self.client.poll_time_window_seconds,
         );
-        self.client.idle_timeout_seconds =
-            get_arg_value("idle-timeout", matches, self.client.idle_timeout_seconds);
-
-        self.server.port = get_arg_value("port", matches, self.server.port);
-        self.server.host = get_arg_value("host", matches, self.server.host.clone());
+        get_arg_value(
+            "idle-timeout",
+            matches,
+            &mut self.client.idle_timeout_seconds,
+        );
+        get_arg_value("port", matches, &mut self.server.port);
+        get_arg_value("host", matches, &mut self.server.host);
     }
 }
 
-fn get_arg_value<T>(id: &str, matches: &ArgMatches, config_value: T) -> T
+fn get_arg_value<T>(id: &str, matches: &ArgMatches, config_value: &mut T)
 where
     T: Clone + Send + Sync + 'static,
 {
     if let Some(ValueSource::CommandLine) = matches.value_source(id) {
-        matches.get_one::<T>(id).unwrap().clone()
-    } else {
-        config_value
+        let value = &mut matches.get_one::<T>(id).unwrap().clone();
+        std::mem::swap(config_value, value);
     }
 }
