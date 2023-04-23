@@ -19,14 +19,18 @@ const KWIN_SCRIPT: &str = include_str!("kwin_window.js");
 
 struct KWinScript {
     dbus_connection: Connection,
+    is_loaded: bool,
 }
 
 impl KWinScript {
     fn new(dbus_connection: Connection) -> Self {
-        KWinScript { dbus_connection }
+        KWinScript {
+            dbus_connection,
+            is_loaded: false,
+        }
     }
 
-    fn load(&self) -> Result<(), BoxedError> {
+    fn load(&mut self) -> Result<(), BoxedError> {
         let path = temp_dir().join("kwin_window.js");
         std::fs::write(&path, KWIN_SCRIPT).unwrap();
 
@@ -34,6 +38,7 @@ impl KWinScript {
             .get_registered_number(&path)
             .and_then(|number| self.start(number));
         std::fs::remove_file(&path)?;
+        self.is_loaded = true;
 
         result
     }
@@ -99,10 +104,12 @@ impl KWinScript {
 
 impl Drop for KWinScript {
     fn drop(&mut self) {
-        debug!("Unloading KWin script");
-        if let Err(e) = self.unload() {
-            error!("Problem during stopping KWin script: {e}");
-        };
+        if self.is_loaded {
+            debug!("Unloading KWin script");
+            if let Err(e) = self.unload() {
+                error!("Problem during stopping KWin script: {e}");
+            };
+        }
     }
 }
 

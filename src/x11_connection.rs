@@ -48,13 +48,15 @@ impl X11Connection {
 
         let name = self.get_property(
             focus,
-            self.intern_atom(b"_NET_WM_NAME")?,
-            self.intern_atom(b"UTF8_STRING")?,
+            self.intern_atom("_NET_WM_NAME")?,
+            "_NET_WM_NAME",
+            self.intern_atom("UTF8_STRING")?,
             u32::MAX,
         )?;
         let class = self.get_property(
             focus,
             AtomEnum::WM_CLASS.into(),
+            "WM_CLASS",
             AtomEnum::STRING.into(),
             u32::MAX,
         )?;
@@ -71,23 +73,37 @@ impl X11Connection {
         &self,
         window: Window,
         property: Atom,
+        property_name: &str,
         property_type: Atom,
         long_length: u32,
     ) -> Result<GetPropertyReply, BoxedError> {
         self.connection
-            .get_property(false, window, property, property_type, 0, long_length)?
+            .get_property(false, window, property, property_type, 0, long_length)
+            .map_err(|e| format!("GetPropertyRequest[{property_name}] failed: {e}"))?
             .reply()
-            .map_err(std::convert::Into::into)
+            .map_err(|e| format!("GetPropertyReply[{property_name}] failed: {e}").into())
     }
 
-    fn intern_atom(&self, name: &[u8]) -> Result<Atom, BoxedError> {
-        Ok(self.connection.intern_atom(false, name)?.reply()?.atom)
+    fn intern_atom(&self, name: &str) -> Result<Atom, BoxedError> {
+        Ok(self
+            .connection
+            .intern_atom(false, name.as_bytes())
+            .map_err(|_| format!("InternAtomRequest[{name}] failed"))?
+            .reply()
+            .map_err(|_| format!("InternAtomReply[{name}] failed"))?
+            .atom)
     }
 
     fn find_active_window(&self) -> Result<Window, BoxedError> {
         let window: Atom = AtomEnum::WINDOW.into();
-        let net_active_window = self.intern_atom(b"_NET_ACTIVE_WINDOW")?;
-        let active_window = self.get_property(self.screen_root, net_active_window, window, 1)?;
+        let net_active_window = self.intern_atom("_NET_ACTIVE_WINDOW")?;
+        let active_window = self.get_property(
+            self.screen_root,
+            net_active_window,
+            "_NET_ACTIVE_WINDOW",
+            window,
+            1,
+        )?;
 
         if active_window.format == 32 && active_window.length == 1 {
             active_window

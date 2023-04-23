@@ -29,8 +29,11 @@ impl WindowWatcher {
 
 impl Watcher for WindowWatcher {
     fn new() -> Result<Self, crate::BoxedError> {
+        let connection = X11Connection::new()?;
+        connection.active_window_data()?;
+
         Ok(WindowWatcher {
-            connection: X11Connection::new()?,
+            connection,
             last_title: String::new(),
             last_app_id: String::new(),
         })
