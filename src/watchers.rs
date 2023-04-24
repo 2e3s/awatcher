@@ -1,3 +1,5 @@
+mod gnome_idle;
+mod idle;
 mod kwin_window;
 mod wl_bindings;
 mod wl_connection;
@@ -49,6 +51,7 @@ macro_rules! watcher {
 pub const IDLE: &WatcherConstructors = &[
     watcher!(wl_kwin_idle::IdleWatcher),
     watcher!(x11_screensaver_idle::IdleWatcher),
+    watcher!(gnome_idle::IdleWatcher),
 ];
 
 pub const ACTIVE_WINDOW: &WatcherConstructors = &[

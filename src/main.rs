@@ -71,7 +71,7 @@ fn main() -> Result<(), BoxedError> {
     );
     info!(
         "Window polling period: {} seconds",
-        client.config.poll_time_idle.as_secs()
+        client.config.poll_time_window.as_secs()
     );
 
     let mut thread_handlers = Vec::new();
