@@ -1,6 +1,6 @@
+use super::{x11_connection::X11Connection, BoxedError, Watcher};
+use crate::report_client::ReportClient;
 use std::thread;
-
-use crate::{report_client::ReportClient, x11_connection::X11Connection, BoxedError, Watcher};
 
 pub struct WindowWatcher {
     connection: X11Connection,

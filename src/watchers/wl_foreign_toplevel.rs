@@ -1,21 +1,18 @@
-use std::collections::HashMap;
-use std::{sync::Arc, thread};
-
-use crate::{wl_connection::subscribe_state, Watcher};
-
-use super::report_client::ReportClient;
-use super::wl_bindings;
+use super::wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_handle_v1::{
+    Event as HandleEvent, State as HandleState, ZwlrForeignToplevelHandleV1,
+};
+use super::wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_manager_v1::{
+    Event as ManagerEvent, ZwlrForeignToplevelManagerV1, EVT_TOPLEVEL_OPCODE,
+};
 use super::wl_connection::WlEventConnection;
 use super::BoxedError;
+use super::{wl_connection::subscribe_state, Watcher};
+use crate::report_client::ReportClient;
+use std::collections::HashMap;
+use std::{sync::Arc, thread};
 use wayland_client::{
     event_created_child, globals::GlobalListContents, protocol::wl_registry, Connection, Dispatch,
     Proxy, QueueHandle,
-};
-use wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_handle_v1::{
-    Event as HandleEvent, State as HandleState, ZwlrForeignToplevelHandleV1,
-};
-use wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_manager_v1::{
-    Event as ManagerEvent, ZwlrForeignToplevelManagerV1, EVT_TOPLEVEL_OPCODE,
 };
 
 struct WindowData {

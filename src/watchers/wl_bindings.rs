@@ -14,11 +14,11 @@ pub mod idle {
 
     pub mod __interfaces {
         use wayland_client::protocol::__interfaces::*;
-        wayland_scanner::generate_interfaces!("src/wl-protocols/idle.xml");
+        wayland_scanner::generate_interfaces!("src/watchers/wl-protocols/idle.xml");
     }
     use self::__interfaces::*;
 
-    wayland_scanner::generate_client_code!("src/wl-protocols/idle.xml");
+    wayland_scanner::generate_client_code!("src/watchers/wl-protocols/idle.xml");
 }
 
 pub mod wlr_foreign_toplevel {
@@ -33,9 +33,9 @@ pub mod wlr_foreign_toplevel {
 
     pub mod __interfaces {
         use wayland_client::protocol::__interfaces::*;
-        wayland_scanner::generate_interfaces!("src/wl-protocols/wlr-foreign-toplevel-management-unstable-v1.xml");
+        wayland_scanner::generate_interfaces!("src/watchers/wl-protocols/wlr-foreign-toplevel-management-unstable-v1.xml");
     }
     use self::__interfaces::*;
 
-    wayland_scanner::generate_client_code!("src/wl-protocols/wlr-foreign-toplevel-management-unstable-v1.xml");
+    wayland_scanner::generate_client_code!("src/watchers/wl-protocols/wlr-foreign-toplevel-management-unstable-v1.xml");
 }

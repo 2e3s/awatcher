@@ -1,12 +1,10 @@
-use crate::Watcher;
-
 /*
  * This uses a hack with KWin scripts in order to receive the active window.
  * For the moment of writing, KWin doesn't implement the appropriate protocols to get a top level window.
  * Inspired by https://github.com/k0kubun/xremap/
  */
-use super::report_client::ReportClient;
-use super::BoxedError;
+use super::{BoxedError, Watcher};
+use crate::report_client::ReportClient;
 use std::env::temp_dir;
 use std::path::Path;
 use std::sync::{mpsc::channel, Arc, Mutex};

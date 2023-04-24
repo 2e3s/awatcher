@@ -1,9 +1,8 @@
-use crate::Watcher;
-
-use super::report_client::ReportClient;
 use super::wl_bindings;
 use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::BoxedError;
+use super::Watcher;
+use crate::report_client::ReportClient;
 use chrono::{DateTime, Duration, Utc};
 use std::{sync::Arc, thread};
 use wayland_client::{

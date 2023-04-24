@@ -1,8 +1,8 @@
 use std::{sync::Arc, thread};
 
+use super::{x11_connection::X11Connection, BoxedError, Watcher};
+use crate::report_client::ReportClient;
 use chrono::{Duration, Utc};
-
-use crate::{report_client::ReportClient, x11_connection::X11Connection, BoxedError, Watcher};
 
 pub struct IdleWatcher {
     connection: X11Connection,
