@@ -1,7 +1,5 @@
-use std::error::Error;
-
-use super::BoxedError;
 use super::Config;
+use anyhow::Context;
 use aw_client_rust::{AwClient, Event as AwEvent};
 use chrono::{DateTime, Duration, Utc};
 use serde_json::{Map, Value};
@@ -12,7 +10,7 @@ pub struct ReportClient {
 }
 
 impl ReportClient {
-    pub fn new(config: Config) -> Result<Self, BoxedError> {
+    pub fn new(config: Config) -> anyhow::Result<Self> {
         let client = AwClient::new(&config.host, &config.port.to_string(), "awatcher");
 
         if !config.mock_server {
@@ -28,7 +26,7 @@ impl ReportClient {
         is_idle: bool,
         timestamp: DateTime<Utc>,
         duration: Duration,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> anyhow::Result<()> {
         let mut data = Map::new();
         data.insert(
             "status".to_string(),
@@ -49,10 +47,10 @@ impl ReportClient {
         let pulsetime = (self.config.idle_timeout + self.config.poll_time_idle).as_secs_f64();
         self.client
             .heartbeat(&self.config.idle_bucket_name, &event, pulsetime)
-            .map_err(|_| "Failed to send heartbeat".into())
+            .with_context(|| "Failed to send heartbeat")
     }
 
-    pub fn send_active_window(&self, app_id: &str, title: &str) -> Result<(), BoxedError> {
+    pub fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
         let mut data = Map::new();
         let mut data_insert = |k: &str, v: String| data.insert(k.to_string(), Value::String(v));
 
@@ -89,16 +87,16 @@ impl ReportClient {
                 &event,
                 interval_margin,
             )
-            .map_err(|_| "Failed to send heartbeat for active window".into())
+            .with_context(|| "Failed to send heartbeat for active window")
     }
 
     fn create_bucket(
         client: &AwClient,
         bucket_name: &str,
         bucket_type: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> anyhow::Result<()> {
         client
             .create_bucket_simple(bucket_name, bucket_type)
-            .map_err(|e| format!("Failed to create bucket {bucket_name}: {e}").into())
+            .with_context(|| format!("Failed to create bucket {bucket_name}"))
     }
 }

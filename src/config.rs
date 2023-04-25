@@ -2,7 +2,6 @@ mod defaults;
 mod file_config;
 mod filters;
 
-use crate::BoxedError;
 use clap::{arg, value_parser, ArgAction, Command};
 use file_config::FileConfig;
 use std::{path::PathBuf, time::Duration};
@@ -22,7 +21,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_cli() -> Result<Self, BoxedError> {
+    pub fn from_cli() -> anyhow::Result<Self> {
         let matches = Command::new("Activity Watcher")
             .version("0.1.0")
             .about("A set of ActivityWatch desktop watchers")

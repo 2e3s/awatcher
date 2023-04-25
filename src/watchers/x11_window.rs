@@ -1,5 +1,6 @@
-use super::{x11_connection::X11Connection, BoxedError, Watcher};
+use super::{x11_connection::X11Connection, Watcher};
 use crate::report_client::ReportClient;
+use anyhow::Context;
 use std::thread;
 
 pub struct WindowWatcher {
@@ -9,7 +10,7 @@ pub struct WindowWatcher {
 }
 
 impl WindowWatcher {
-    fn send_active_window(&mut self, client: &ReportClient) -> Result<(), BoxedError> {
+    fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
         let data = self.connection.active_window_data()?;
 
         if data.app_id != self.last_app_id || data.title != self.last_title {
@@ -23,12 +24,12 @@ impl WindowWatcher {
 
         client
             .send_active_window(&self.last_app_id, &self.last_title)
-            .map_err(|_| "Failed to send heartbeat for active window".into())
+            .with_context(|| "Failed to send heartbeat for active window")
     }
 }
 
 impl Watcher for WindowWatcher {
-    fn new() -> Result<Self, crate::BoxedError> {
+    fn new() -> anyhow::Result<Self> {
         let connection = X11Connection::new()?;
         connection.active_window_data()?;
 

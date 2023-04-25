@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Context};
 use clap::{parser::ValueSource, ArgMatches};
 use serde::Deserialize;
 use serde_default::DefaultFromSerde;
@@ -7,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{config::defaults, BoxedError};
+use crate::config::defaults;
 
 use super::filters::Filter;
 
@@ -56,8 +57,9 @@ pub struct FileConfig {
 }
 
 impl FileConfig {
-    pub fn new(matches: &ArgMatches) -> Result<Self, BoxedError> {
-        let mut config_path: PathBuf = dirs::config_dir().ok_or("Config directory is unknown")?;
+    pub fn new(matches: &ArgMatches) -> anyhow::Result<Self> {
+        let mut config_path: PathBuf =
+            dirs::config_dir().ok_or(anyhow!("Config directory is unknown"))?;
         config_path.push("awatcher");
         config_path.push("config.toml");
         if matches.contains_id("config") {
@@ -73,8 +75,9 @@ impl FileConfig {
 
         let mut config = if config_path.exists() {
             debug!("Reading config at {}", config_path.display());
-            let config_content = std::fs::read_to_string(config_path)
-                .map_err(|e| format!("Impossible to read config file: {e}"))?;
+            let config_content = std::fs::read_to_string(&config_path).with_context(|| {
+                format!("Impossible to read config file {}", config_path.display())
+            })?;
 
             toml::from_str(&config_content)?
         } else {

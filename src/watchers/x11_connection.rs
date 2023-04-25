@@ -1,12 +1,10 @@
-use std::{env, str};
-
+use anyhow::{anyhow, bail, Context};
 use log::warn;
+use std::{env, str};
 use x11rb::connection::Connection;
 use x11rb::protocol::screensaver::ConnectionExt as ScreensaverConnectionExt;
 use x11rb::protocol::xproto::{Atom, AtomEnum, ConnectionExt, GetPropertyReply, Window};
 use x11rb::rust_connection::RustConnection;
-
-use crate::BoxedError;
 
 pub struct WindowData {
     pub title: String,
@@ -19,7 +17,7 @@ pub struct X11Connection {
 }
 
 impl X11Connection {
-    pub fn new() -> Result<Self, BoxedError> {
+    pub fn new() -> anyhow::Result<Self> {
         if env::var("DISPLAY").is_err() {
             warn!("DISPLAY is not set, setting to the default value \":0\"");
             env::set_var("DISPLAY", ":0");
@@ -34,7 +32,7 @@ impl X11Connection {
         })
     }
 
-    pub fn seconds_since_last_input(&self) -> Result<u32, BoxedError> {
+    pub fn seconds_since_last_input(&self) -> anyhow::Result<u32> {
         let reply = self
             .connection
             .screensaver_query_info(self.screen_root)?
@@ -43,7 +41,7 @@ impl X11Connection {
         Ok(reply.ms_since_user_input / 1000)
     }
 
-    pub fn active_window_data(&self) -> Result<WindowData, BoxedError> {
+    pub fn active_window_data(&self) -> anyhow::Result<WindowData> {
         let focus: Window = self.find_active_window()?;
 
         let name = self.get_property(
@@ -61,7 +59,7 @@ impl X11Connection {
             u32::MAX,
         )?;
 
-        let title = str::from_utf8(&name.value).map_err(|e| format!("Invalid title UTF: {e}"))?;
+        let title = str::from_utf8(&name.value).with_context(|| "Invalid title UTF")?;
 
         Ok(WindowData {
             title: title.to_string(),
@@ -76,25 +74,25 @@ impl X11Connection {
         property_name: &str,
         property_type: Atom,
         long_length: u32,
-    ) -> Result<GetPropertyReply, BoxedError> {
+    ) -> anyhow::Result<GetPropertyReply> {
         self.connection
             .get_property(false, window, property, property_type, 0, long_length)
-            .map_err(|e| format!("GetPropertyRequest[{property_name}] failed: {e}"))?
+            .with_context(|| format!("GetPropertyRequest[{property_name}] failed"))?
             .reply()
-            .map_err(|e| format!("GetPropertyReply[{property_name}] failed: {e}").into())
+            .with_context(|| format!("GetPropertyReply[{property_name}] failed"))
     }
 
-    fn intern_atom(&self, name: &str) -> Result<Atom, BoxedError> {
+    fn intern_atom(&self, name: &str) -> anyhow::Result<Atom> {
         Ok(self
             .connection
             .intern_atom(false, name.as_bytes())
-            .map_err(|_| format!("InternAtomRequest[{name}] failed"))?
+            .with_context(|| format!("InternAtomRequest[{name}] failed"))?
             .reply()
-            .map_err(|_| format!("InternAtomReply[{name}] failed"))?
+            .with_context(|| format!("InternAtomReply[{name}] failed"))?
             .atom)
     }
 
-    fn find_active_window(&self) -> Result<Window, BoxedError> {
+    fn find_active_window(&self) -> anyhow::Result<Window> {
         let window: Atom = AtomEnum::WINDOW.into();
         let net_active_window = self.intern_atom("_NET_ACTIVE_WINDOW")?;
         let active_window = self.get_property(
@@ -108,25 +106,25 @@ impl X11Connection {
         if active_window.format == 32 && active_window.length == 1 {
             active_window
                 .value32()
-                .ok_or("Invalid message. Expected value with format = 32")?
+                .ok_or(anyhow!("Invalid message. Expected value with format = 32"))?
                 .next()
-                .ok_or("Active window is not found".into())
+                .ok_or(anyhow!("Active window is not found"))
         } else {
             // Query the input focus
             Ok(self
                 .connection
                 .get_input_focus()
-                .map_err(|e| format!("Failed to get input focus: {e}"))?
+                .with_context(|| "Failed to get input focus")?
                 .reply()
-                .map_err(|e| format!("Failed to read input focus from reply: {e}"))?
+                .with_context(|| "Failed to read input focus from reply")?
                 .focus)
         }
     }
 }
 
-fn parse_wm_class(property: &GetPropertyReply) -> Result<&str, BoxedError> {
+fn parse_wm_class(property: &GetPropertyReply) -> anyhow::Result<&str> {
     if property.format != 8 {
-        return Err("Malformed property: wrong format".into());
+        bail!("Malformed property: wrong format");
     }
     let value = &property.value;
     // The property should contain two null-terminated strings. Find them.
@@ -140,6 +138,6 @@ fn parse_wm_class(property: &GetPropertyReply) -> Result<&str, BoxedError> {
         }
         Ok(std::str::from_utf8(class)?)
     } else {
-        Err("Missing null byte".into())
+        bail!("Missing null byte")
     }
 }

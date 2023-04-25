@@ -11,11 +11,9 @@ use config::Config;
 use fern::colors::{Color, ColoredLevelConfig};
 use report_client::ReportClient;
 use std::env;
-use std::{error::Error, str::FromStr, sync::Arc, thread};
+use std::{sync::Arc, thread};
 
 use crate::watchers::ConstructorFilter;
-
-type BoxedError = Box<dyn Error>;
 
 fn setup_logger() -> Result<(), fern::InitError> {
     let log_setting = env::var("AWATCHER_LOG").unwrap_or("info".to_string());
@@ -37,14 +35,14 @@ fn setup_logger() -> Result<(), fern::InitError> {
         .level(log::LevelFilter::Warn)
         .level_for(
             "awatcher",
-            FromStr::from_str(&log_setting).unwrap_or(log::LevelFilter::Info),
+            log_setting.parse().unwrap_or(log::LevelFilter::Info),
         )
         .chain(std::io::stdout())
         .apply()?;
     Ok(())
 }
 
-fn main() -> Result<(), BoxedError> {
+fn main() -> anyhow::Result<()> {
     setup_logger()?;
 
     let client = ReportClient::new(Config::from_cli()?)?;

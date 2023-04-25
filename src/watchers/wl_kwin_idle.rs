@@ -1,6 +1,5 @@
 use super::wl_bindings;
 use super::wl_connection::{subscribe_state, WlEventConnection};
-use super::BoxedError;
 use super::Watcher;
 use crate::report_client::ReportClient;
 use chrono::{DateTime, Duration, Utc};
@@ -54,7 +53,7 @@ impl IdleState {
         debug!("Resumed");
     }
 
-    fn send_ping(&mut self) -> Result<(), BoxedError> {
+    fn send_ping(&mut self) -> anyhow::Result<()> {
         let now = Utc::now();
         if !self.is_idle {
             self.last_input_time = now;
@@ -122,7 +121,7 @@ pub struct IdleWatcher {
 }
 
 impl Watcher for IdleWatcher {
-    fn new() -> Result<Self, BoxedError> {
+    fn new() -> anyhow::Result<Self> {
         let connection: WlEventConnection<IdleState> = WlEventConnection::connect()?;
         connection.get_kwin_idle()?;
 

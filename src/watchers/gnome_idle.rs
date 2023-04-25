@@ -1,5 +1,6 @@
 use super::{idle, Watcher};
-use crate::{report_client::ReportClient, BoxedError};
+use crate::report_client::ReportClient;
+use anyhow::Context;
 use std::{sync::Arc, thread};
 use zbus::blocking::Connection;
 
@@ -8,7 +9,7 @@ pub struct IdleWatcher {
 }
 
 impl idle::SinceLastInput for IdleWatcher {
-    fn seconds_since_input(&self) -> Result<u32, BoxedError> {
+    fn seconds_since_input(&self) -> anyhow::Result<u32> {
         let ms = self
             .dbus_connection
             .call_method(
@@ -19,12 +20,12 @@ impl idle::SinceLastInput for IdleWatcher {
                 &(),
             )?
             .body::<u64>()?;
-        u32::try_from(ms / 1000).map_err(|_| format!("Number {ms} is invalid").into())
+        u32::try_from(ms / 1000).with_context(|| format!("Number {ms} is invalid"))
     }
 }
 
 impl Watcher for IdleWatcher {
-    fn new() -> Result<Self, crate::BoxedError> {
+    fn new() -> anyhow::Result<Self> {
         let watcher = Self {
             dbus_connection: Connection::session()?,
         };

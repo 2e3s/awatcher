@@ -1,5 +1,5 @@
 use super::wl_bindings;
-use crate::BoxedError;
+use anyhow::Context;
 use wayland_client::{
     globals::{registry_queue_init, GlobalList, GlobalListContents},
     protocol::{wl_registry, wl_seat::WlSeat},
@@ -38,9 +38,9 @@ where
         + Dispatch<wl_registry::WlRegistry, ()>
         + 'static,
 {
-    pub fn connect() -> Result<Self, BoxedError> {
-        let connection =
-            Connection::connect_to_env().map_err(|_| "Unable to connect to Wayland compositor")?;
+    pub fn connect() -> anyhow::Result<Self> {
+        let connection = Connection::connect_to_env()
+            .with_context(|| "Unable to connect to Wayland compositor")?;
         let display = connection.display();
         let (globals, event_queue) = registry_queue_init::<T>(&connection)?;
 
@@ -55,7 +55,7 @@ where
         })
     }
 
-    pub fn get_foreign_toplevel_manager(&self) -> Result<ZwlrForeignToplevelManagerV1, BoxedError>
+    pub fn get_foreign_toplevel_manager(&self) -> anyhow::Result<ZwlrForeignToplevelManagerV1>
     where
         T: Dispatch<ZwlrForeignToplevelManagerV1, ()>,
     {
@@ -68,7 +68,7 @@ where
             .map_err(std::convert::Into::into)
     }
 
-    pub fn get_kwin_idle(&self) -> Result<OrgKdeKwinIdle, BoxedError>
+    pub fn get_kwin_idle(&self) -> anyhow::Result<OrgKdeKwinIdle>
     where
         T: Dispatch<OrgKdeKwinIdle, ()>,
     {
@@ -81,7 +81,7 @@ where
             .map_err(std::convert::Into::into)
     }
 
-    pub fn get_kwin_idle_timeout(&self, timeout: u32) -> Result<OrgKdeKwinIdleTimeout, BoxedError>
+    pub fn get_kwin_idle_timeout(&self, timeout: u32) -> anyhow::Result<OrgKdeKwinIdleTimeout>
     where
         T: Dispatch<OrgKdeKwinIdle, ()>
             + Dispatch<OrgKdeKwinIdleTimeout, ()>

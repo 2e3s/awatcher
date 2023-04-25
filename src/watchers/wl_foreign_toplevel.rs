@@ -5,9 +5,9 @@ use super::wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_manager_v1::
     Event as ManagerEvent, ZwlrForeignToplevelManagerV1, EVT_TOPLEVEL_OPCODE,
 };
 use super::wl_connection::WlEventConnection;
-use super::BoxedError;
 use super::{wl_connection::subscribe_state, Watcher};
 use crate::report_client::ReportClient;
+use anyhow::{anyhow, Context};
 use std::collections::HashMap;
 use std::{sync::Arc, thread};
 use wayland_client::{
@@ -114,18 +114,18 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for ToplevelState {
 }
 
 impl ToplevelState {
-    fn send_active_window(&self) -> Result<(), BoxedError> {
+    fn send_active_window(&self) -> anyhow::Result<()> {
         let active_window_id = self
             .current_window_id
             .as_ref()
-            .ok_or("Current window is unknown")?;
-        let active_window = self.windows.get(active_window_id).ok_or(format!(
+            .ok_or(anyhow!("Current window is unknown"))?;
+        let active_window = self.windows.get(active_window_id).ok_or(anyhow!(
             "Current window is not found by ID {active_window_id}"
         ))?;
 
         self.client
             .send_active_window(&active_window.app_id, &active_window.title)
-            .map_err(|_| "Failed to send heartbeat for active window".into())
+            .with_context(|| "Failed to send heartbeat for active window")
     }
 }
 
@@ -134,7 +134,7 @@ pub struct WindowWatcher {
 }
 
 impl Watcher for WindowWatcher {
-    fn new() -> Result<Self, BoxedError> {
+    fn new() -> anyhow::Result<Self> {
         let connection: WlEventConnection<ToplevelState> = WlEventConnection::connect()?;
         connection.get_foreign_toplevel_manager()?;
 

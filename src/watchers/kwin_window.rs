@@ -3,8 +3,9 @@
  * For the moment of writing, KWin doesn't implement the appropriate protocols to get a top level window.
  * Inspired by https://github.com/k0kubun/xremap/
  */
-use super::{BoxedError, Watcher};
+use super::Watcher;
 use crate::report_client::ReportClient;
+use anyhow::{anyhow, Context};
 use std::env::temp_dir;
 use std::path::Path;
 use std::sync::{mpsc::channel, Arc, Mutex};
@@ -28,7 +29,7 @@ impl KWinScript {
         }
     }
 
-    fn load(&mut self) -> Result<(), BoxedError> {
+    fn load(&mut self) -> anyhow::Result<()> {
         let path = temp_dir().join("kwin_window.js");
         std::fs::write(&path, KWIN_SCRIPT).unwrap();
 
@@ -41,7 +42,7 @@ impl KWinScript {
         result
     }
 
-    fn is_loaded(&self) -> Result<bool, BoxedError> {
+    fn is_loaded(&self) -> anyhow::Result<bool> {
         self.dbus_connection
             .call_method(
                 Some("org.kde.KWin"),
@@ -54,10 +55,10 @@ impl KWinScript {
             .map_err(std::convert::Into::into)
     }
 
-    fn get_registered_number(&self, path: &Path) -> Result<i32, BoxedError> {
+    fn get_registered_number(&self, path: &Path) -> anyhow::Result<i32> {
         let temp_path = path
             .to_str()
-            .ok_or::<BoxedError>("Temporary file path is not valid".into())?;
+            .ok_or(anyhow!("Temporary file path is not valid"))?;
 
         self.dbus_connection
             .call_method(
@@ -72,7 +73,7 @@ impl KWinScript {
             .map_err(std::convert::Into::into)
     }
 
-    fn unload(&self) -> Result<bool, BoxedError> {
+    fn unload(&self) -> anyhow::Result<bool> {
         self.dbus_connection
             .call_method(
                 Some("org.kde.KWin"),
@@ -85,7 +86,7 @@ impl KWinScript {
             .map_err(std::convert::Into::into)
     }
 
-    fn start(&self, script_number: i32) -> Result<(), BoxedError> {
+    fn start(&self, script_number: i32) -> anyhow::Result<()> {
         debug!("Starting KWin script {script_number}");
         self.dbus_connection
             .call_method(
@@ -95,8 +96,8 @@ impl KWinScript {
                 "run",
                 &(),
             )
-            .map_err(|e| format!("Error on starting the script {e}").into())
-            .map(|_| ())
+            .with_context(|| "Error on starting the script")?;
+        Ok(())
     }
 }
 
@@ -114,12 +115,12 @@ impl Drop for KWinScript {
 fn send_active_window(
     client: &ReportClient,
     active_window: &Arc<Mutex<ActiveWindow>>,
-) -> Result<(), BoxedError> {
-    let active_window = active_window.lock().map_err(|e| format!("{e}"))?;
+) -> anyhow::Result<()> {
+    let active_window = active_window.lock().expect("Lock cannot be acquired");
 
     client
         .send_active_window(&active_window.resource_class, &active_window.caption)
-        .map_err(|_| "Failed to send heartbeat for active window".into())
+        .with_context(|| "Failed to send heartbeat for active window")
 }
 
 struct ActiveWindow {
@@ -153,7 +154,7 @@ pub struct WindowWatcher {
 }
 
 impl Watcher for WindowWatcher {
-    fn new() -> Result<Self, BoxedError> {
+    fn new() -> anyhow::Result<Self> {
         let kwin_script = KWinScript::new(Connection::session()?);
         if kwin_script.is_loaded()? {
             warn!("KWin script is already loaded, unloading");

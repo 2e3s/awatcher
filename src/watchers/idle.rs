@@ -1,16 +1,16 @@
-use crate::{report_client::ReportClient, BoxedError};
+use crate::report_client::ReportClient;
 use chrono::{Duration, Utc};
 use std::sync::Arc;
 
 pub trait SinceLastInput {
-    fn seconds_since_input(&self) -> Result<u32, BoxedError>;
+    fn seconds_since_input(&self) -> anyhow::Result<u32>;
 }
 
 pub fn ping_since_last_input(
     watcher: &impl SinceLastInput,
     is_idle: bool,
     client: &Arc<ReportClient>,
-) -> Result<bool, BoxedError> {
+) -> anyhow::Result<bool> {
     // The logic is rewritten from the original Python code:
     // https://github.com/ActivityWatch/aw-watcher-afk/blob/ef531605cd8238e00138bbb980e5457054e05248/aw_watcher_afk/afk.py#L73
     let duration_1ms: Duration = Duration::milliseconds(1);

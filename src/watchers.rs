@@ -9,11 +9,11 @@ mod x11_connection;
 mod x11_screensaver_idle;
 mod x11_window;
 
-use crate::{report_client::ReportClient, BoxedError};
+use crate::report_client::ReportClient;
 use std::sync::Arc;
 
 pub trait Watcher: Send {
-    fn new() -> Result<Self, BoxedError>
+    fn new() -> anyhow::Result<Self>
     where
         Self: Sized;
     fn watch(&mut self, client: &Arc<ReportClient>);
@@ -21,7 +21,7 @@ pub trait Watcher: Send {
 
 type BoxedWatcher = Box<dyn Watcher>;
 
-type WatcherConstructor = (&'static str, fn() -> Result<BoxedWatcher, BoxedError>);
+type WatcherConstructor = (&'static str, fn() -> anyhow::Result<BoxedWatcher>);
 type WatcherConstructors = [WatcherConstructor];
 
 pub trait ConstructorFilter {
