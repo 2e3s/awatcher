@@ -39,6 +39,7 @@ impl WindowWatcher {
             }
             Err(e) => {
                 if e.to_string().contains("No window in focus") {
+                    trace!("No window is active");
                     Ok(WindowData::default())
                 } else {
                     Err(e.into())
@@ -48,7 +49,15 @@ impl WindowWatcher {
     }
 
     fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
-        let data = self.get_window_data()?;
+        let data = self.get_window_data();
+        if let Err(e) = data {
+            if e.to_string().contains("Object does not exist at path") {
+                trace!("The extension seems to have stopped");
+                return Ok(());
+            }
+            return Err(e);
+        }
+        let data = data?;
 
         if data.wm_class != self.last_app_id || data.title != self.last_title {
             debug!(
