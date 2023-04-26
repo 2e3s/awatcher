@@ -15,7 +15,7 @@ impl WindowWatcher {
 
         if data.app_id != self.last_app_id || data.title != self.last_title {
             debug!(
-                "Changed window app_id=\"{}\", title=\"{}\"",
+                r#"Changed window app_id="{}", title="{}""#,
                 data.app_id, data.title
             );
             self.last_app_id = data.app_id;

@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
     let client = ReportClient::new(Config::from_cli()?)?;
     let client = Arc::new(client);
 
-    if client.config.mock_server {
+    if client.config.no_server {
         warn!(
             "Not sending to server {}:{}",
             client.config.host, client.config.port

@@ -1,4 +1,5 @@
 mod gnome_idle;
+mod gnome_window;
 mod idle;
 mod kwin_window;
 mod wl_bindings;
@@ -56,6 +57,7 @@ pub const IDLE: &WatcherConstructors = &[
 
 pub const ACTIVE_WINDOW: &WatcherConstructors = &[
     watcher!(wl_foreign_toplevel::WindowWatcher),
-    watcher!(kwin_window::WindowWatcher),
     watcher!(x11_window::WindowWatcher),
+    watcher!(kwin_window::WindowWatcher),
+    watcher!(gnome_window::WindowWatcher),
 ];

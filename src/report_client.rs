@@ -13,7 +13,7 @@ impl ReportClient {
     pub fn new(config: Config) -> anyhow::Result<Self> {
         let client = AwClient::new(&config.host, &config.port.to_string(), "awatcher");
 
-        if !config.mock_server {
+        if !config.no_server {
             Self::create_bucket(&client, &config.idle_bucket_name, "afkstatus")?;
             Self::create_bucket(&client, &config.active_window_bucket_name, "currentwindow")?;
         }
@@ -40,7 +40,7 @@ impl ReportClient {
             data,
         };
 
-        if self.config.mock_server {
+        if self.config.no_server {
             return Ok(());
         }
 
@@ -76,7 +76,7 @@ impl ReportClient {
             data,
         };
 
-        if self.config.mock_server {
+        if self.config.no_server {
             return Ok(());
         }
 
