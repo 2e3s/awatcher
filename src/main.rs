@@ -9,15 +9,12 @@ mod watchers;
 
 use config::Config;
 use fern::colors::{Color, ColoredLevelConfig};
+use log::LevelFilter;
 use report_client::ReportClient;
-use std::env;
 use std::{sync::Arc, thread};
+use watchers::ConstructorFilter;
 
-use crate::watchers::ConstructorFilter;
-
-fn setup_logger() -> Result<(), fern::InitError> {
-    let log_setting = env::var("AWATCHER_LOG").unwrap_or("info".to_string());
-
+fn setup_logger(verbosity: LevelFilter) -> Result<(), fern::InitError> {
     fern::Dispatch::new()
         .format(|out, message, record| {
             let colors = ColoredLevelConfig::new()
@@ -32,20 +29,18 @@ fn setup_logger() -> Result<(), fern::InitError> {
                 message
             ));
         })
-        .level(log::LevelFilter::Warn)
-        .level_for(
-            "awatcher",
-            log_setting.parse().unwrap_or(log::LevelFilter::Info),
-        )
+        .level(log::LevelFilter::Error)
+        .level_for("awatcher", verbosity)
         .chain(std::io::stdout())
         .apply()?;
     Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
-    setup_logger()?;
+    let config = Config::from_cli()?;
+    setup_logger(config.verbosity)?;
 
-    let client = ReportClient::new(Config::from_cli()?)?;
+    let client = ReportClient::new(config)?;
     let client = Arc::new(client);
 
     if client.config.no_server {

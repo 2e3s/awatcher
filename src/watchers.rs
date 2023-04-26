@@ -57,7 +57,8 @@ pub const IDLE: &WatcherConstructors = &[
 
 pub const ACTIVE_WINDOW: &WatcherConstructors = &[
     watcher!(wl_foreign_toplevel::WindowWatcher),
-    watcher!(x11_window::WindowWatcher),
+    // XWayland gives _NET_WM_NAME on some windows in KDE, but not on others
     watcher!(kwin_window::WindowWatcher),
+    watcher!(x11_window::WindowWatcher),
     watcher!(gnome_window::WindowWatcher),
 ];

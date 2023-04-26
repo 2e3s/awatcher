@@ -2,11 +2,11 @@ mod defaults;
 mod file_config;
 mod filters;
 
-use clap::{arg, value_parser, ArgAction, Command};
-use file_config::FileConfig;
-use std::{path::PathBuf, time::Duration};
-
 use self::filters::{Filter, Replacement};
+use clap::{arg, value_parser, Arg, ArgAction, Command};
+use file_config::FileConfig;
+use log::LevelFilter;
+use std::{path::PathBuf, time::Duration};
 
 pub struct Config {
     pub port: u32,
@@ -17,13 +17,14 @@ pub struct Config {
     pub idle_bucket_name: String,
     pub active_window_bucket_name: String,
     pub no_server: bool,
+    pub verbosity: LevelFilter,
     filters: Vec<Filter>,
 }
 
 impl Config {
     pub fn from_cli() -> anyhow::Result<Self> {
         let matches = Command::new("Activity Watcher")
-            .version("0.1.0")
+            .version("0.0.1")
             .about("A set of ActivityWatch desktop watchers")
             .args([
                 arg!(-c --config <FILE> "Custom config file").value_parser(value_parser!(PathBuf)),
@@ -45,6 +46,10 @@ impl Config {
                 arg!(--"no-server" "Don't communicate to the ActivityWatch server")
                     .value_parser(value_parser!(bool))
                     .action(ArgAction::SetTrue),
+                Arg::new("verbosity")
+                    .short('v')
+                    .help("Verbosity level: -v for warnings, -vv for info, -vvv for debug, -vvvv for trace")
+                    .action(ArgAction::Count),
             ])
             .get_matches();
 
@@ -53,6 +58,13 @@ impl Config {
         let hostname = gethostname::gethostname().into_string().unwrap();
         let idle_bucket_name = format!("aw-watcher-afk_{hostname}");
         let active_window_bucket_name = format!("aw-watcher-window_{hostname}");
+        let verbosity = match matches.get_count("verbosity") {
+            0 => LevelFilter::Error,
+            1 => LevelFilter::Warn,
+            2 => LevelFilter::Info,
+            3 => LevelFilter::Debug,
+            _ => LevelFilter::Trace,
+        };
 
         Ok(Self {
             port: config.server.port,
@@ -64,6 +76,7 @@ impl Config {
             active_window_bucket_name,
             filters: config.client.filters,
             no_server: *matches.get_one("no-server").unwrap(),
+            verbosity,
         })
     }
 
