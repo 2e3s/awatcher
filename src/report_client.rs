@@ -52,7 +52,6 @@ impl ReportClient {
 
     pub fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
         let mut data = Map::new();
-        let mut data_insert = |k: &str, v: String| data.insert(k.to_string(), Value::String(v));
 
         let replacement = self.config.window_data_replacement(app_id, title);
         let inserted_app_id = if let Some(new_app_id) = replacement.replace_app_id {
@@ -67,8 +66,9 @@ impl ReportClient {
         } else {
             title.to_string()
         };
-        data_insert("app", inserted_app_id);
-        data_insert("title", inserted_title);
+        trace!("Reporting app_id: {}, title: {}", app_id, title);
+        data.insert("app".to_string(), Value::String(inserted_app_id));
+        data.insert("title".to_string(), Value::String(inserted_title));
         let event = AwEvent {
             id: None,
             timestamp: Utc::now(),

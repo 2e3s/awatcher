@@ -34,7 +34,7 @@ impl ConstructorFilter for WatcherConstructors {
         self.iter().find_map(|(name, watcher)| match watcher() {
             Ok(watcher) => Some(watcher),
             Err(e) => {
-                info!("{name} cannot run: {e}");
+                debug!("{name} cannot run: {e}");
                 None
             }
         })

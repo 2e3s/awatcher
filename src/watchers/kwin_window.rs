@@ -157,7 +157,7 @@ impl Watcher for WindowWatcher {
     fn new() -> anyhow::Result<Self> {
         let kwin_script = KWinScript::new(Connection::session()?);
         if kwin_script.is_loaded()? {
-            warn!("KWin script is already loaded, unloading");
+            debug!("KWin script is already loaded, unloading");
             kwin_script.unload()?;
         }
 
