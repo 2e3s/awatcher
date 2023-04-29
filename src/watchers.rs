@@ -1,6 +1,9 @@
+#[cfg(feature = "gnome")]
 mod gnome_idle;
+#[cfg(feature = "gnome")]
 mod gnome_window;
 mod idle;
+#[cfg(feature = "kwin_window")]
 mod kwin_window;
 mod wl_bindings;
 mod wl_connection;
@@ -52,13 +55,16 @@ macro_rules! watcher {
 pub const IDLE: &WatcherConstructors = &[
     watcher!(wl_kwin_idle::IdleWatcher),
     watcher!(x11_screensaver_idle::IdleWatcher),
+    #[cfg(feature = "gnome")]
     watcher!(gnome_idle::IdleWatcher),
 ];
 
 pub const ACTIVE_WINDOW: &WatcherConstructors = &[
     watcher!(wl_foreign_toplevel::WindowWatcher),
     // XWayland gives _NET_WM_NAME on some windows in KDE, but not on others
+    #[cfg(feature = "kwin_window")]
     watcher!(kwin_window::WindowWatcher),
     watcher!(x11_window::WindowWatcher),
+    #[cfg(feature = "gnome")]
     watcher!(gnome_window::WindowWatcher),
 ];

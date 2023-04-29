@@ -18,6 +18,9 @@ and to add more flexibility to reports.
 - `cargo build --release` in the root of the repository.
 - The target file will be located at `target/release/awatcher`.
 
+Add `--no-default-features` to the build command if you want to opt out of the Gnome and KDE support,
+add `--features=?` ("gnome" or "kwin_window") on top of that if you want to enable just one.
+
 To track your activities in browsers install the plugin for your browser from 
 [here](https://github.com/ActivityWatch/aw-watcher-web) (Firefox, Chrome etc).
 
