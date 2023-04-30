@@ -1,4 +1,4 @@
-use super::Config;
+use super::config::Config;
 use anyhow::Context;
 use aw_client_rust::{AwClient, Event as AwEvent};
 use chrono::{DateTime, Duration, Utc};

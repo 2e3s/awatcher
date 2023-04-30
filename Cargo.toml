@@ -1,7 +1,17 @@
 [package]
 name = "awatcher"
 version = "0.1.0"
+authors = ["Demmie <2e3s19@gmail.com>"]
 edition = "2021"
+
+[[bin]]
+name = "awatcher"
+path = "src/main.rs"
+
+[lib]
+name = "awatcher"
+crate-type = ["lib"]
+path = "src/lib.rs"
 
 [dependencies]
 aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust" }

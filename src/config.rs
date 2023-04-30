@@ -53,7 +53,7 @@ impl Config {
             ])
             .get_matches();
 
-        let config = FileConfig::new(&matches)?;
+        let config = FileConfig::new_with_cli(&matches)?;
 
         let hostname = gethostname::gethostname().into_string().unwrap();
         let idle_bucket_name = format!("aw-watcher-afk_{hostname}");

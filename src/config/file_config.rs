@@ -57,23 +57,16 @@ pub struct FileConfig {
 }
 
 impl FileConfig {
-    pub fn new(matches: &ArgMatches) -> anyhow::Result<Self> {
+    pub fn new(config_override: Option<PathBuf>) -> anyhow::Result<Self> {
         let mut config_path: PathBuf =
             dirs::config_dir().ok_or(anyhow!("Config directory is unknown"))?;
         config_path.push("awatcher");
         config_path.push("config.toml");
-        if matches.contains_id("config") {
-            let config_file = matches.get_one::<String>("config");
-            if let Some(path) = config_file {
-                if let Err(e) = std::fs::metadata(path) {
-                    warn!("Invalid config filename, using the default config: {e}");
-                } else {
-                    config_path = Path::new(path).to_path_buf();
-                }
-            }
+        if let Some(config_override) = config_override {
+            config_path = config_override;
         }
 
-        let mut config = if config_path.exists() {
+        let config = if config_path.exists() {
             debug!("Reading config at {}", config_path.display());
             let config_content = std::fs::read_to_string(&config_path).with_context(|| {
                 format!("Impossible to read config file {}", config_path.display())
@@ -122,6 +115,24 @@ impl FileConfig {
 
             Self::default()
         };
+
+        Ok(config)
+    }
+
+    pub fn new_with_cli(matches: &ArgMatches) -> anyhow::Result<Self> {
+        let mut config_path = None;
+        if matches.contains_id("config") {
+            let config_file = matches.get_one::<String>("config");
+            if let Some(path) = config_file {
+                if let Err(e) = std::fs::metadata(path) {
+                    warn!("Invalid config filename, using the default config: {e}");
+                } else {
+                    config_path = Some(Path::new(path).to_path_buf());
+                }
+            }
+        }
+        let mut config = Self::new(config_path)?;
+
         config.merge_cli(matches);
 
         Ok(config)
