@@ -14,7 +14,10 @@ mod x11_screensaver_idle;
 mod x11_window;
 
 use crate::report_client::ReportClient;
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    thread::{self, JoinHandle},
+};
 
 pub trait Watcher: Send {
     fn new() -> anyhow::Result<Self>
@@ -30,6 +33,8 @@ type WatcherConstructors = [WatcherConstructor];
 
 pub trait ConstructorFilter {
     fn filter_first_supported(&self) -> Option<BoxedWatcher>;
+
+    fn run_first_supported(&self, client: &Arc<ReportClient>) -> Option<JoinHandle<()>>;
 }
 
 impl ConstructorFilter for WatcherConstructors {
@@ -41,6 +46,17 @@ impl ConstructorFilter for WatcherConstructors {
                 None
             }
         })
+    }
+
+    fn run_first_supported(&self, client: &Arc<ReportClient>) -> Option<JoinHandle<()>> {
+        let idle_watcher = self.filter_first_supported();
+        if let Some(mut watcher) = idle_watcher {
+            let thread_client = Arc::clone(client);
+            let idle_handler = thread::spawn(move || watcher.watch(&thread_client));
+            Some(idle_handler)
+        } else {
+            None
+        }
     }
 }
 

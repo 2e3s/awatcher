@@ -1,12 +1,7 @@
 use anyhow::{anyhow, Context};
-use clap::{parser::ValueSource, ArgMatches};
 use serde::Deserialize;
 use serde_default::DefaultFromSerde;
-use std::{
-    io::ErrorKind,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::{io::ErrorKind, path::PathBuf, time::Duration};
 
 use crate::config::defaults;
 
@@ -24,11 +19,11 @@ pub struct ServerConfig {
 #[serde(rename_all = "kebab-case")]
 pub struct ClientConfig {
     #[serde(default = "defaults::idle_timeout_seconds")]
-    idle_timeout_seconds: u32,
+    pub idle_timeout_seconds: u32,
     #[serde(default = "defaults::poll_time_idle_seconds")]
-    poll_time_idle_seconds: u32,
+    pub poll_time_idle_seconds: u32,
     #[serde(default = "defaults::poll_time_window_seconds")]
-    poll_time_window_seconds: u32,
+    pub poll_time_window_seconds: u32,
     #[serde(default)]
     pub filters: Vec<Filter>,
 }
@@ -117,54 +112,5 @@ impl FileConfig {
         };
 
         Ok(config)
-    }
-
-    pub fn new_with_cli(matches: &ArgMatches) -> anyhow::Result<Self> {
-        let mut config_path = None;
-        if matches.contains_id("config") {
-            let config_file = matches.get_one::<String>("config");
-            if let Some(path) = config_file {
-                if let Err(e) = std::fs::metadata(path) {
-                    warn!("Invalid config filename, using the default config: {e}");
-                } else {
-                    config_path = Some(Path::new(path).to_path_buf());
-                }
-            }
-        }
-        let mut config = Self::new(config_path)?;
-
-        config.merge_cli(matches);
-
-        Ok(config)
-    }
-
-    fn merge_cli(&mut self, matches: &ArgMatches) {
-        get_arg_value(
-            "poll-time-idle",
-            matches,
-            &mut self.client.poll_time_idle_seconds,
-        );
-        get_arg_value(
-            "poll-time-window",
-            matches,
-            &mut self.client.poll_time_window_seconds,
-        );
-        get_arg_value(
-            "idle-timeout",
-            matches,
-            &mut self.client.idle_timeout_seconds,
-        );
-        get_arg_value("port", matches, &mut self.server.port);
-        get_arg_value("host", matches, &mut self.server.host);
-    }
-}
-
-fn get_arg_value<T>(id: &str, matches: &ArgMatches, config_value: &mut T)
-where
-    T: Clone + Send + Sync + 'static,
-{
-    if let Some(ValueSource::CommandLine) = matches.value_source(id) {
-        let value = &mut matches.get_one::<T>(id).unwrap().clone();
-        std::mem::swap(config_value, value);
     }
 }

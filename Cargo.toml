@@ -1,6 +1,6 @@
 [package]
 name = "awatcher"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Demmie <2e3s19@gmail.com>"]
 edition = "2021"
 
@@ -8,32 +8,24 @@ edition = "2021"
 name = "awatcher"
 path = "src/main.rs"
 
-[lib]
-name = "awatcher"
-crate-type = ["lib"]
-path = "src/lib.rs"
+[workspace]
+members = ["watchers"]
+
+[workspace.dependencies]
+anyhow = "1.0.70"
+log = { version = "0.4.17", features = ["std"] }
 
 [dependencies]
-aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust" }
+watchers = { path = "./watchers", default-features = false }
 gethostname = "0.4.1"
-wayland-client = "0.30.1"
-wayland-scanner = "0.30"
-wayland-backend = "0.1"
-x11rb = { version = "0.11.1", features = ["screensaver"] }
-zbus = {version = "3.11.1", optional = true}
 chrono = "0.4.24"
 toml = "0.7.3"
 clap = { version = "4.2.1", features = ["string"] }
-log = { version = "0.4.17", features = ["std"] }
 fern = { version = "0.6.2", features = ["colored"] }
-dirs = "5.0.0"
-serde = { version = "1.0.160", features = ["derive"] }
-serde_default = "0.1.0"
-serde_json = "1.0.95"
-regex = "1.8.1"
-anyhow = "1.0.70"
+log = { workspace = true }
+anyhow = { workspace = true }
 
 [features]
 default = ["gnome", "kwin_window"]
-gnome = ["zbus"]
-kwin_window = ["zbus"]
+gnome = ["watchers/gnome"]
+kwin_window = ["watchers/kwin_window"]
