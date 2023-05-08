@@ -7,18 +7,28 @@ use serde_json::{Map, Value};
 pub struct ReportClient {
     pub client: AwClient,
     pub config: Config,
+    idle_bucket_name: String,
+    active_window_bucket_name: String,
 }
 
 impl ReportClient {
     pub fn new(config: Config) -> anyhow::Result<Self> {
         let client = AwClient::new(&config.host, &config.port.to_string(), "awatcher");
 
+        let hostname = gethostname::gethostname().into_string().unwrap();
+        let idle_bucket_name = format!("aw-watcher-afk_{hostname}");
+        let active_window_bucket_name = format!("aw-watcher-window_{hostname}");
         if !config.no_server {
-            Self::create_bucket(&client, &config.idle_bucket_name, "afkstatus")?;
-            Self::create_bucket(&client, &config.active_window_bucket_name, "currentwindow")?;
+            Self::create_bucket(&client, &idle_bucket_name, "afkstatus")?;
+            Self::create_bucket(&client, &active_window_bucket_name, "currentwindow")?;
         }
 
-        Ok(Self { client, config })
+        Ok(Self {
+            client,
+            config,
+            idle_bucket_name,
+            active_window_bucket_name,
+        })
     }
 
     pub fn ping(
@@ -46,7 +56,7 @@ impl ReportClient {
 
         let pulsetime = (self.config.idle_timeout + self.config.poll_time_idle).as_secs_f64();
         self.client
-            .heartbeat(&self.config.idle_bucket_name, &event, pulsetime)
+            .heartbeat(&self.idle_bucket_name, &event, pulsetime)
             .with_context(|| "Failed to send heartbeat")
     }
 
@@ -82,11 +92,7 @@ impl ReportClient {
 
         let interval_margin = self.config.poll_time_idle.as_secs_f64() + 1.0;
         self.client
-            .heartbeat(
-                &self.config.active_window_bucket_name,
-                &event,
-                interval_margin,
-            )
+            .heartbeat(&self.active_window_bucket_name, &event, interval_margin)
             .with_context(|| "Failed to send heartbeat for active window")
     }
 

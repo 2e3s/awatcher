@@ -17,7 +17,6 @@ log = { version = "0.4.17", features = ["std"] }
 
 [dependencies]
 watchers = { path = "./watchers", default-features = false }
-gethostname = "0.4.1"
 chrono = "0.4.24"
 toml = "0.7.3"
 clap = { version = "4.2.1", features = ["string"] }

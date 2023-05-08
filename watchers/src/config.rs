@@ -12,8 +12,6 @@ pub struct Config {
     pub idle_timeout: Duration,
     pub poll_time_idle: Duration,
     pub poll_time_window: Duration,
-    pub idle_bucket_name: String,
-    pub active_window_bucket_name: String,
     pub no_server: bool,
     pub filters: Vec<Filter>,
 }

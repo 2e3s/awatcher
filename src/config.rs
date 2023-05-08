@@ -70,9 +70,6 @@ pub fn from_cli() -> anyhow::Result<Config> {
 
     let config = new_with_cli(&matches)?;
 
-    let hostname = gethostname::gethostname().into_string().unwrap();
-    let idle_bucket_name = format!("aw-watcher-afk_{hostname}");
-    let active_window_bucket_name = format!("aw-watcher-window_{hostname}");
     let verbosity = match matches.get_count("verbosity") {
         0 => LevelFilter::Error,
         1 => LevelFilter::Warn,
@@ -88,8 +85,6 @@ pub fn from_cli() -> anyhow::Result<Config> {
             idle_timeout: config.client.get_idle_timeout(),
             poll_time_idle: config.client.get_poll_time_idle(),
             poll_time_window: config.client.get_poll_time_window(),
-            idle_bucket_name,
-            active_window_bucket_name,
             filters: config.client.filters,
             no_server: *matches.get_one("no-server").unwrap(),
         },

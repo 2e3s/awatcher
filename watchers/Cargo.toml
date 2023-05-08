@@ -23,6 +23,7 @@ serde = { version = "1.0.160", features = ["derive"] }
 serde_default = "0.1.0"
 serde_json = "1.0.95"
 regex = "1.8.1"
+gethostname = "0.4.1"
 log = { workspace = true }
 anyhow = { workspace = true }
 
