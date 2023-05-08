@@ -3,6 +3,8 @@
 #[macro_use]
 extern crate log;
 
+#[cfg(feature = "bundle")]
+mod bundle;
 mod config;
 
 use std::sync::Arc;
@@ -11,34 +13,27 @@ use watchers::ReportClient;
 
 fn main() -> anyhow::Result<()> {
     let config = config::from_cli()?;
-    config::setup_logger(&config)?;
 
-    let client = ReportClient::new(config.watchers_config)?;
-    let client = Arc::new(client);
-
-    if client.config.no_server {
-        warn!(
-            "Not sending to server {}:{}",
-            client.config.host, client.config.port
-        );
+    if config.no_server {
+        warn!("Not sending to server {}:{}", config.host, config.port);
     } else {
-        info!(
-            "Sending to server {}:{}",
-            client.config.host, client.config.port
-        );
+        info!("Sending to server {}:{}", config.host, config.port);
     }
-    info!(
-        "Idle timeout: {} seconds",
-        client.config.idle_timeout.as_secs()
-    );
+    info!("Idle timeout: {} seconds", config.idle_timeout.as_secs());
     info!(
         "Idle polling period: {} seconds",
-        client.config.poll_time_idle.as_secs()
+        config.poll_time_idle.as_secs()
     );
     info!(
         "Window polling period: {} seconds",
-        client.config.poll_time_window.as_secs()
+        config.poll_time_window.as_secs()
     );
+
+    #[cfg(feature = "bundle")]
+    bundle::run(&config)?;
+
+    let client = ReportClient::new(config)?;
+    let client = Arc::new(client);
 
     let mut thread_handlers = Vec::new();
 

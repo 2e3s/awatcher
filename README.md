@@ -24,6 +24,19 @@ add `--features=?` ("gnome" or "kwin_window") on top of that if you want to enab
 To track your activities in browsers install the plugin for your browser from 
 [here](https://github.com/ActivityWatch/aw-watcher-web) (Firefox, Chrome etc).
 
+#### Compile with bundle
+
+The executable can be bundled with a tray icon, ActivityWatch server and, optionally, Web UI (if steps 1-2 are done):
+
+1. Clone and follow the instruction in [ActivityWatch/aw-webui](https://github.com/ActivityWatch/aw-webui)
+to build the "dist" folder, 
+1. Then zip it with `zip -r dist.zip aw-webui/dist`.
+2. Build the executable with `--features=bundle`.
+
+This should be compiled on nightly. The complete bundled version is also built and released.
+
+Gnome needs [the extension](https://extensions.gnome.org/extension/615/appindicator-support/) to support StatusNotifierItem specification.
+
 ## Supported environments
 
 ActivityWatch server should be run before `awatcher` is running.
