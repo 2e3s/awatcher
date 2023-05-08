@@ -6,10 +6,15 @@ use clap::{arg, value_parser, Arg, ArgAction, ArgMatches, Command};
 use fern::colors::{Color, ColoredLevelConfig};
 use log::LevelFilter;
 use watchers::config::defaults;
-use watchers::config::Config;
+use watchers::config::Config as WatchersConfig;
 use watchers::config::FileConfig;
 
-pub fn setup_logger(verbosity: LevelFilter) -> Result<(), fern::InitError> {
+pub struct Config {
+    pub watchers_config: WatchersConfig,
+    verbosity: LevelFilter,
+}
+
+pub fn setup_logger(config: &Config) -> Result<(), fern::InitError> {
     fern::Dispatch::new()
         .format(|out, message, record| {
             let colors = ColoredLevelConfig::new()
@@ -25,8 +30,8 @@ pub fn setup_logger(verbosity: LevelFilter) -> Result<(), fern::InitError> {
             ));
         })
         .level(log::LevelFilter::Error)
-        .level_for("watchers", verbosity)
-        .level_for("awatcher", verbosity)
+        .level_for("watchers", config.verbosity)
+        .level_for("awatcher", config.verbosity)
         .chain(std::io::stdout())
         .apply()?;
     Ok(())
@@ -77,15 +82,17 @@ pub fn from_cli() -> anyhow::Result<Config> {
     };
 
     Ok(Config {
-        port: config.server.port,
-        host: config.server.host,
-        idle_timeout: config.client.get_idle_timeout(),
-        poll_time_idle: config.client.get_poll_time_idle(),
-        poll_time_window: config.client.get_poll_time_window(),
-        idle_bucket_name,
-        active_window_bucket_name,
-        filters: config.client.filters,
-        no_server: *matches.get_one("no-server").unwrap(),
+        watchers_config: WatchersConfig {
+            port: config.server.port,
+            host: config.server.host,
+            idle_timeout: config.client.get_idle_timeout(),
+            poll_time_idle: config.client.get_poll_time_idle(),
+            poll_time_window: config.client.get_poll_time_window(),
+            idle_bucket_name,
+            active_window_bucket_name,
+            filters: config.client.filters,
+            no_server: *matches.get_one("no-server").unwrap(),
+        },
         verbosity,
     })
 }

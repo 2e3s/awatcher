@@ -11,9 +11,9 @@ use watchers::ReportClient;
 
 fn main() -> anyhow::Result<()> {
     let config = config::from_cli()?;
-    config::setup_logger(config.verbosity)?;
+    config::setup_logger(&config)?;
 
-    let client = ReportClient::new(config)?;
+    let client = ReportClient::new(config.watchers_config)?;
     let client = Arc::new(client);
 
     if client.config.no_server {

@@ -4,7 +4,6 @@ mod filters;
 
 use self::filters::{Filter, Replacement};
 pub use file_config::FileConfig;
-use log::LevelFilter;
 use std::time::Duration;
 
 pub struct Config {
@@ -16,7 +15,6 @@ pub struct Config {
     pub idle_bucket_name: String,
     pub active_window_bucket_name: String,
     pub no_server: bool,
-    pub verbosity: LevelFilter,
     pub filters: Vec<Filter>,
 }
 
