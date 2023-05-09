@@ -9,6 +9,11 @@ use watchers::config::defaults;
 use watchers::config::Config;
 use watchers::config::FileConfig;
 
+pub struct RunnerConfig {
+    pub watchers_config: Config,
+    pub no_tray: bool,
+}
+
 pub fn setup_logger(verbosity: LevelFilter) -> Result<(), fern::InitError> {
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -32,7 +37,7 @@ pub fn setup_logger(verbosity: LevelFilter) -> Result<(), fern::InitError> {
     Ok(())
 }
 
-pub fn from_cli() -> anyhow::Result<Config> {
+pub fn from_cli() -> anyhow::Result<RunnerConfig> {
     let matches = Command::new("Activity Watcher")
         .version("0.0.1")
         .about("A set of ActivityWatch desktop watchers")
@@ -56,6 +61,10 @@ pub fn from_cli() -> anyhow::Result<Config> {
             arg!(--"no-server" "Don't communicate to the ActivityWatch server")
                 .value_parser(value_parser!(bool))
                 .action(ArgAction::SetTrue),
+            #[cfg(feature = "bundle")]
+            arg!(--"no-tray" "Don't use the bundled tray, run only server and watchers in the background")
+                .value_parser(value_parser!(bool))
+                .action(ArgAction::SetTrue),
             Arg::new("verbosity")
                 .short('v')
                 .help("Verbosity level: -v for warnings, -vv for info, -vvv for debug, -vvvv for trace")
@@ -74,14 +83,20 @@ pub fn from_cli() -> anyhow::Result<Config> {
     };
     setup_logger(verbosity)?;
 
-    Ok(Config {
-        port: config.server.port,
-        host: config.server.host,
-        idle_timeout: config.client.get_idle_timeout(),
-        poll_time_idle: config.client.get_poll_time_idle(),
-        poll_time_window: config.client.get_poll_time_window(),
-        filters: config.client.filters,
-        no_server: *matches.get_one("no-server").unwrap(),
+    Ok(RunnerConfig {
+        watchers_config: Config {
+            port: config.server.port,
+            host: config.server.host,
+            idle_timeout: config.client.get_idle_timeout(),
+            poll_time_idle: config.client.get_poll_time_idle(),
+            poll_time_window: config.client.get_poll_time_window(),
+            filters: config.client.filters,
+            no_server: *matches.get_one("no-server").unwrap(),
+        },
+        #[cfg(feature = "bundle")]
+        no_tray: *matches.get_one("no-tray").unwrap(),
+        #[cfg(not(feature = "bundle"))]
+        no_tray: true,
     })
 }
 

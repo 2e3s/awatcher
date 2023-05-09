@@ -1,4 +1,5 @@
 #![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
 
 #[macro_use]
 extern crate log;
@@ -13,6 +14,8 @@ use watchers::ReportClient;
 
 fn main() -> anyhow::Result<()> {
     let config = config::from_cli()?;
+    let no_tray = config.no_tray;
+    let config = config.watchers_config;
 
     if config.no_server {
         warn!("Not sending to server {}:{}", config.host, config.port);
@@ -30,7 +33,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     #[cfg(feature = "bundle")]
-    bundle::run(&config)?;
+    bundle::run(&config, no_tray)?;
 
     let client = ReportClient::new(config)?;
     let client = Arc::new(client);

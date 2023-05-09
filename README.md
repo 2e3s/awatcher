@@ -1,9 +1,13 @@
 # Awatcher 
 [![Build Status](https://github.com/2e3s/awatcher/workflows/check/badge.svg?branch=main)](https://github.com/2e3s/awatcher/actions?query=branch%3Amain) [![Dependency Status](https://deps.rs/repo/github/2e3s/awatcher/status.svg)](https://deps.rs/repo/github/2e3s/awatcher)
 
-Awatcher is a window activity and idle watcher for [ActivityWatch](https://github.com/ActivityWatch) server.
+Awatcher is a window activity and idle watcher with an optional tray and UI for statistics.
 The goal is to compensate the fragmentation of desktop environments on Linux, 
 and to add more flexibility to reports.
+
+The server and web UI are taken from [ActivityWatch](https://github.com/ActivityWatch) project,
+which has a worse support of Linux environment, with a pretty bulky distribution.
+The crate also provides a library with watchers which can send statistics to the server.
 
 ## Build
 
@@ -36,6 +40,8 @@ to build the "dist" folder,
 This should be compiled on nightly. The complete bundled version is also built and released.
 
 Gnome needs [the extension](https://extensions.gnome.org/extension/615/appindicator-support/) to support StatusNotifierItem specification.
+
+The tray can be disabled with `--no-tray` option in the bundled version.
 
 ## Supported environments
 
