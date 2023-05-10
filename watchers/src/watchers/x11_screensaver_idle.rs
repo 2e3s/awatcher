@@ -1,25 +1,25 @@
-use super::{idle, x11_connection::X11Connection, Watcher};
+use super::{idle, x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
 use std::{sync::Arc, thread};
 
 pub struct IdleWatcher {
-    connection: X11Connection,
+    client: X11Client,
 }
 
 impl idle::SinceLastInput for IdleWatcher {
-    fn seconds_since_input(&self) -> anyhow::Result<u32> {
-        self.connection.seconds_since_last_input()
+    fn seconds_since_input(&mut self) -> anyhow::Result<u32> {
+        self.client.seconds_since_last_input()
     }
 }
 
 impl Watcher for IdleWatcher {
     fn new() -> anyhow::Result<Self> {
-        let connection = X11Connection::new()?;
+        let mut client = X11Client::new()?;
 
         // Check if screensaver extension is supported
-        connection.seconds_since_last_input()?;
+        client.seconds_since_last_input()?;
 
-        Ok(IdleWatcher { connection })
+        Ok(IdleWatcher { client })
     }
 
     fn watch(&mut self, client: &Arc<ReportClient>) {

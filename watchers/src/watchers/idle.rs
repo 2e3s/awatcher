@@ -3,11 +3,11 @@ use chrono::{Duration, Utc};
 use std::sync::Arc;
 
 pub trait SinceLastInput {
-    fn seconds_since_input(&self) -> anyhow::Result<u32>;
+    fn seconds_since_input(&mut self) -> anyhow::Result<u32>;
 }
 
 pub fn ping_since_last_input(
-    watcher: &impl SinceLastInput,
+    watcher: &mut impl SinceLastInput,
     is_idle: bool,
     client: &Arc<ReportClient>,
 ) -> anyhow::Result<bool> {

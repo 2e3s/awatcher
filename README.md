@@ -2,12 +2,13 @@
 [![Build Status](https://github.com/2e3s/awatcher/workflows/check/badge.svg?branch=main)](https://github.com/2e3s/awatcher/actions?query=branch%3Amain) [![Dependency Status](https://deps.rs/repo/github/2e3s/awatcher/status.svg)](https://deps.rs/repo/github/2e3s/awatcher)
 
 Awatcher is a window activity and idle watcher with an optional tray and UI for statistics.
-The goal is to compensate the fragmentation of desktop environments on Linux, 
-and to add more flexibility to reports.
+The goal is to compensate the fragmentation of desktop environments on Linux by supporting all reportable environments, 
+to add more flexibility to reports with filters, and to have better UX with the distribution by a single executable.
 
-The server and web UI are taken from [ActivityWatch](https://github.com/ActivityWatch) project,
-which has a worse support of Linux environment, with a pretty bulky distribution.
-The crate also provides a library with watchers which can send statistics to the server.
+The foundation is taken from [ActivityWatch](https://github.com/ActivityWatch), which includes the server and web UI.
+The unbundled watcher can replace the original idle and active window watchers in the original distribution if necessary.
+
+The crate also provides a library with watchers which can send the data to the server.
 
 ## Build
 

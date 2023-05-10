@@ -11,12 +11,12 @@ pub struct WindowData {
     pub app_id: String,
 }
 
-pub struct X11Connection {
+pub struct X11Client {
     connection: RustConnection,
     screen_root: Window,
 }
 
-impl X11Connection {
+impl X11Client {
     pub fn new() -> anyhow::Result<Self> {
         if env::var("DISPLAY").is_err() {
             warn!("DISPLAY is not set, setting to the default value \":0\"");
@@ -26,44 +26,71 @@ impl X11Connection {
         let (connection, screen_num) = x11rb::connect(None)?;
         let screen_root = connection.setup().roots[screen_num].root;
 
-        Ok(X11Connection {
+        Ok(X11Client {
             connection,
             screen_root,
         })
     }
 
-    pub fn seconds_since_last_input(&self) -> anyhow::Result<u32> {
-        let reply = self
-            .connection
-            .screensaver_query_info(self.screen_root)?
-            .reply()?;
-
-        Ok(reply.ms_since_user_input / 1000)
+    fn reconnect(&mut self) {
+        match x11rb::connect(None) {
+            Ok((connection, screen_num)) => {
+                self.screen_root = connection.setup().roots[screen_num].root;
+                self.connection = connection;
+            }
+            Err(e) => error!("Failed to reconnect to X11: {e}"),
+        };
     }
 
-    pub fn active_window_data(&self) -> anyhow::Result<WindowData> {
-        let focus: Window = self.find_active_window()?;
+    fn execute_with_reconnect<T>(
+        &mut self,
+        action: fn(&Self) -> anyhow::Result<T>,
+    ) -> anyhow::Result<T> {
+        match action(self) {
+            Ok(v) => Ok(v),
+            Err(_) => {
+                self.reconnect();
+                action(self)
+            }
+        }
+    }
 
-        let name = self.get_property(
-            focus,
-            self.intern_atom("_NET_WM_NAME")?,
-            "_NET_WM_NAME",
-            self.intern_atom("UTF8_STRING")?,
-            u32::MAX,
-        )?;
-        let class = self.get_property(
-            focus,
-            AtomEnum::WM_CLASS.into(),
-            "WM_CLASS",
-            AtomEnum::STRING.into(),
-            u32::MAX,
-        )?;
+    pub fn seconds_since_last_input(&mut self) -> anyhow::Result<u32> {
+        self.execute_with_reconnect(|client| {
+            let reply = client
+                .connection
+                .screensaver_query_info(client.screen_root)?
+                .reply()?;
 
-        let title = str::from_utf8(&name.value).with_context(|| "Invalid title UTF")?;
+            Ok(reply.ms_since_user_input / 1000)
+        })
+    }
 
-        Ok(WindowData {
-            title: title.to_string(),
-            app_id: parse_wm_class(&class)?.to_string(),
+    pub fn active_window_data(&mut self) -> anyhow::Result<WindowData> {
+        self.execute_with_reconnect(|client| {
+            let focus: Window = client.find_active_window()?;
+
+            let name = client.get_property(
+                focus,
+                client.intern_atom("_NET_WM_NAME")?,
+                "_NET_WM_NAME",
+                client.intern_atom("UTF8_STRING")?,
+                u32::MAX,
+            )?;
+            let class = client.get_property(
+                focus,
+                AtomEnum::WM_CLASS.into(),
+                "WM_CLASS",
+                AtomEnum::STRING.into(),
+                u32::MAX,
+            )?;
+
+            let title = str::from_utf8(&name.value).with_context(|| "Invalid title UTF")?;
+
+            Ok(WindowData {
+                title: title.to_string(),
+                app_id: parse_wm_class(&class)?.to_string(),
+            })
         })
     }
 

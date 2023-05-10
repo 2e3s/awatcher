@@ -9,7 +9,7 @@ pub struct IdleWatcher {
 }
 
 impl idle::SinceLastInput for IdleWatcher {
-    fn seconds_since_input(&self) -> anyhow::Result<u32> {
+    fn seconds_since_input(&mut self) -> anyhow::Result<u32> {
         let ms = self
             .dbus_connection
             .call_method(
@@ -26,10 +26,10 @@ impl idle::SinceLastInput for IdleWatcher {
 
 impl Watcher for IdleWatcher {
     fn new() -> anyhow::Result<Self> {
-        let watcher = Self {
+        let mut watcher = Self {
             dbus_connection: Connection::session()?,
         };
-        idle::SinceLastInput::seconds_since_input(&watcher)?;
+        idle::SinceLastInput::seconds_since_input(&mut watcher)?;
 
         Ok(watcher)
     }

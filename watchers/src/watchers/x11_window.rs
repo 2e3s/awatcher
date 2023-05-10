@@ -1,17 +1,17 @@
-use super::{x11_connection::X11Connection, Watcher};
+use super::{x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
 use std::thread;
 
 pub struct WindowWatcher {
-    connection: X11Connection,
+    client: X11Client,
     last_title: String,
     last_app_id: String,
 }
 
 impl WindowWatcher {
     fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
-        let data = self.connection.active_window_data()?;
+        let data = self.client.active_window_data()?;
 
         if data.app_id != self.last_app_id || data.title != self.last_title {
             debug!(
@@ -30,11 +30,11 @@ impl WindowWatcher {
 
 impl Watcher for WindowWatcher {
     fn new() -> anyhow::Result<Self> {
-        let connection = X11Connection::new()?;
-        connection.active_window_data()?;
+        let mut client = X11Client::new()?;
+        client.active_window_data()?;
 
         Ok(WindowWatcher {
-            connection,
+            client,
             last_title: String::new(),
             last_app_id: String::new(),
         })
