@@ -8,6 +8,7 @@ use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
 use std::env::temp_dir;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc::channel, Arc, Mutex};
 use std::thread;
 use zbus::blocking::{Connection, ConnectionBuilder};
@@ -164,7 +165,7 @@ impl Watcher for WindowWatcher {
         Ok(Self { kwin_script })
     }
 
-    fn watch(&mut self, client: &Arc<ReportClient>) {
+    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
         self.kwin_script.load().unwrap();
 
         let active_window = Arc::new(Mutex::new(ActiveWindow {
@@ -200,6 +201,10 @@ impl Watcher for WindowWatcher {
 
         info!("Starting active window watcher");
         loop {
+            if is_stopped.load(Ordering::Relaxed) {
+                warn!("Received an exit signal, shutting down");
+                break;
+            }
             if let Err(error) = send_active_window(client, &active_window) {
                 error!("Error on sending active window: {error}");
             }

@@ -1,6 +1,8 @@
 use super::{x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 
 pub struct WindowWatcher {
@@ -40,9 +42,13 @@ impl Watcher for WindowWatcher {
         })
     }
 
-    fn watch(&mut self, client: &std::sync::Arc<crate::report_client::ReportClient>) {
+    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
         info!("Starting active window watcher");
         loop {
+            if is_stopped.load(Ordering::Relaxed) {
+                warn!("Received an exit signal, shutting down");
+                break;
+            }
             if let Err(error) = self.send_active_window(client) {
                 error!("Error on sending active window: {error}");
             }

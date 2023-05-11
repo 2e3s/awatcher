@@ -9,6 +9,7 @@ use super::{wl_connection::subscribe_state, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{sync::Arc, thread};
 use wayland_client::{
     event_created_child, globals::GlobalListContents, protocol::wl_registry, Connection, Dispatch,
@@ -141,7 +142,7 @@ impl Watcher for WindowWatcher {
         Ok(Self { connection })
     }
 
-    fn watch(&mut self, client: &Arc<ReportClient>) {
+    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
         let mut toplevel_state = ToplevelState::new(Arc::clone(client));
 
         self.connection
@@ -151,6 +152,10 @@ impl Watcher for WindowWatcher {
 
         info!("Starting wlr foreign toplevel watcher");
         loop {
+            if is_stopped.load(Ordering::Relaxed) {
+                warn!("Received an exit signal, shutting down");
+                break;
+            }
             if let Err(e) = self.connection.event_queue.roundtrip(&mut toplevel_state) {
                 error!("Event queue is not processed: {e}");
             } else if let Err(e) = toplevel_state.send_active_window() {

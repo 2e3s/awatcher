@@ -1,7 +1,9 @@
 use super::{idle, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
-use std::{sync::Arc, thread};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
 use zbus::blocking::Connection;
 
 pub struct IdleWatcher {
@@ -34,10 +36,14 @@ impl Watcher for IdleWatcher {
         Ok(watcher)
     }
 
-    fn watch(&mut self, client: &Arc<ReportClient>) {
+    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
         let mut is_idle = false;
         info!("Starting idle watcher");
         loop {
+            if is_stopped.load(Ordering::Relaxed) {
+                warn!("Received an exit signal, shutting down");
+                break;
+            }
             match idle::ping_since_last_input(self, is_idle, client) {
                 Ok(is_idle_again) => {
                     is_idle = is_idle_again;

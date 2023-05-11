@@ -3,6 +3,7 @@ use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
 use chrono::{DateTime, Duration, Utc};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{sync::Arc, thread};
 use wayland_client::{
     globals::GlobalListContents,
@@ -128,7 +129,7 @@ impl Watcher for IdleWatcher {
         Ok(Self { connection })
     }
 
-    fn watch(&mut self, client: &Arc<ReportClient>) {
+    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
         let timeout = u32::try_from(client.config.idle_timeout.as_secs() * 1000);
         let mut idle_state = IdleState::new(
             self.connection
@@ -143,6 +144,10 @@ impl Watcher for IdleWatcher {
 
         info!("Starting idle watcher");
         loop {
+            if is_stopped.load(Ordering::Relaxed) {
+                warn!("Received an exit signal, shutting down");
+                break;
+            }
             if let Err(e) = self.connection.event_queue.roundtrip(&mut idle_state) {
                 error!("Event queue is not processed: {e}");
             } else if let Err(e) = idle_state.send_ping() {
