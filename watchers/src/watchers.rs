@@ -64,12 +64,14 @@ pub trait Watcher: Send {
                 warn!("Received an exit signal, shutting down {watcher_type}");
                 break;
             }
-            self.run_iteration(client);
+            if let Err(e) = self.run_iteration(client) {
+                error!("Error on {watcher_type} iteration: {e}");
+            }
             thread::sleep(watcher_type.sleep_time(&client.config));
         }
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>);
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()>;
 }
 
 type BoxedWatcher = Box<dyn Watcher>;

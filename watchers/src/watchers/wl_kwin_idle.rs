@@ -2,6 +2,7 @@ use super::wl_bindings;
 use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
+use anyhow::anyhow;
 use chrono::{DateTime, Duration, Utc};
 use std::sync::Arc;
 use wayland_client::{
@@ -131,11 +132,12 @@ impl Watcher for IdleWatcher {
         })
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
-        if let Err(e) = self.connection.event_queue.roundtrip(&mut self.idle_state) {
-            error!("Event queue is not processed: {e}");
-        } else if let Err(e) = self.idle_state.send_ping(client) {
-            error!("Error on idle iteration: {e}");
-        }
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        self.connection
+            .event_queue
+            .roundtrip(&mut self.idle_state)
+            .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
+
+        self.idle_state.send_ping(client)
     }
 }

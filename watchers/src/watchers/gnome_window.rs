@@ -85,9 +85,7 @@ impl Watcher for WindowWatcher {
         Ok(watcher)
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
-        if let Err(error) = self.send_active_window(client) {
-            error!("Error on active window: {error}");
-        }
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        self.send_active_window(client)
     }
 }

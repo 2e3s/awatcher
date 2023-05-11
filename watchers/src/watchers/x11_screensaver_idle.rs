@@ -26,12 +26,9 @@ impl Watcher for IdleWatcher {
         })
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
-        match idle::ping_since_last_input(self, self.is_idle, client) {
-            Ok(is_idle_again) => {
-                self.is_idle = is_idle_again;
-            }
-            Err(e) => error!("Error on idle iteration: {e}"),
-        };
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        self.is_idle = idle::ping_since_last_input(self, self.is_idle, client)?;
+
+        Ok(())
     }
 }

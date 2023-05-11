@@ -155,15 +155,12 @@ impl Watcher for WindowWatcher {
         })
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
-        if let Err(e) = self
-            .connection
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        self.connection
             .event_queue
             .roundtrip(&mut self.toplevel_state)
-        {
-            error!("Event queue is not processed: {e}");
-        } else if let Err(e) = self.send_active_window(client) {
-            error!("Error on iteration: {e}");
-        }
+            .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
+
+        self.send_active_window(client)
     }
 }
