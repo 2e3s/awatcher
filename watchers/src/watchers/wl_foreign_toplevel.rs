@@ -9,8 +9,7 @@ use super::{wl_connection::subscribe_state, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::{sync::Arc, thread};
+use std::sync::Arc;
 use wayland_client::{
     event_created_child, globals::GlobalListContents, protocol::wl_registry, Connection, Dispatch,
     Proxy, QueueHandle,
@@ -24,15 +23,13 @@ struct WindowData {
 struct ToplevelState {
     windows: HashMap<String, WindowData>,
     current_window_id: Option<String>,
-    client: Arc<ReportClient>,
 }
 
 impl ToplevelState {
-    fn new(client: Arc<ReportClient>) -> Self {
+    fn new() -> Self {
         Self {
             windows: HashMap::new(),
             current_window_id: None,
-            client,
         }
     }
 }
@@ -114,55 +111,59 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for ToplevelState {
     }
 }
 
-impl ToplevelState {
-    fn send_active_window(&self) -> anyhow::Result<()> {
+pub struct WindowWatcher {
+    connection: WlEventConnection<ToplevelState>,
+    toplevel_state: ToplevelState,
+}
+
+impl WindowWatcher {
+    fn send_active_window(&self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         let active_window_id = self
+            .toplevel_state
             .current_window_id
             .as_ref()
             .ok_or(anyhow!("Current window is unknown"))?;
-        let active_window = self.windows.get(active_window_id).ok_or(anyhow!(
-            "Current window is not found by ID {active_window_id}"
-        ))?;
+        let active_window = self
+            .toplevel_state
+            .windows
+            .get(active_window_id)
+            .ok_or(anyhow!(
+                "Current window is not found by ID {active_window_id}"
+            ))?;
 
-        self.client
+        client
             .send_active_window(&active_window.app_id, &active_window.title)
             .with_context(|| "Failed to send heartbeat for active window")
     }
 }
 
-pub struct WindowWatcher {
-    connection: WlEventConnection<ToplevelState>,
-}
-
 impl Watcher for WindowWatcher {
-    fn new() -> anyhow::Result<Self> {
-        let connection: WlEventConnection<ToplevelState> = WlEventConnection::connect()?;
+    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+        let mut connection: WlEventConnection<ToplevelState> = WlEventConnection::connect()?;
         connection.get_foreign_toplevel_manager()?;
 
-        Ok(Self { connection })
-    }
+        let mut toplevel_state = ToplevelState::new();
 
-    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
-        let mut toplevel_state = ToplevelState::new(Arc::clone(client));
-
-        self.connection
+        connection
             .event_queue
             .roundtrip(&mut toplevel_state)
             .unwrap();
 
-        info!("Starting wlr foreign toplevel watcher");
-        loop {
-            if is_stopped.load(Ordering::Relaxed) {
-                warn!("Received an exit signal, shutting down");
-                break;
-            }
-            if let Err(e) = self.connection.event_queue.roundtrip(&mut toplevel_state) {
-                error!("Event queue is not processed: {e}");
-            } else if let Err(e) = toplevel_state.send_active_window() {
-                error!("Error on iteration: {e}");
-            }
+        Ok(Self {
+            connection,
+            toplevel_state,
+        })
+    }
 
-            thread::sleep(client.config.poll_time_window);
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
+        if let Err(e) = self
+            .connection
+            .event_queue
+            .roundtrip(&mut self.toplevel_state)
+        {
+            error!("Event queue is not processed: {e}");
+        } else if let Err(e) = self.send_active_window(client) {
+            error!("Error on iteration: {e}");
         }
     }
 }

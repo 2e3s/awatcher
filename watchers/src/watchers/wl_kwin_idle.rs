@@ -3,8 +3,7 @@ use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
 use chrono::{DateTime, Duration, Utc};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::{sync::Arc, thread};
+use std::sync::Arc;
 use wayland_client::{
     globals::GlobalListContents,
     protocol::{wl_registry, wl_seat::WlSeat},
@@ -20,7 +19,6 @@ struct IdleState {
     last_input_time: DateTime<Utc>,
     is_idle: bool,
     is_changed: bool,
-    client: Arc<ReportClient>,
 }
 
 impl Drop for IdleState {
@@ -31,13 +29,12 @@ impl Drop for IdleState {
 }
 
 impl IdleState {
-    fn new(idle_timeout: OrgKdeKwinIdleTimeout, client: Arc<ReportClient>) -> Self {
+    fn new(idle_timeout: OrgKdeKwinIdleTimeout) -> Self {
         Self {
             idle_timeout,
             last_input_time: Utc::now(),
             is_idle: false,
             is_changed: false,
-            client,
         }
     }
 
@@ -54,7 +51,7 @@ impl IdleState {
         debug!("Resumed");
     }
 
-    fn send_ping(&mut self) -> anyhow::Result<()> {
+    fn send_ping(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         let now = Utc::now();
         if !self.is_idle {
             self.last_input_time = now;
@@ -63,9 +60,8 @@ impl IdleState {
         if self.is_changed {
             let result = if self.is_idle {
                 debug!("Reporting as changed to idle");
-                self.client
-                    .ping(false, self.last_input_time, Duration::zero())?;
-                self.client.ping(
+                client.ping(false, self.last_input_time, Duration::zero())?;
+                client.ping(
                     true,
                     self.last_input_time + Duration::milliseconds(1),
                     Duration::zero(),
@@ -73,9 +69,8 @@ impl IdleState {
             } else {
                 debug!("Reporting as no longer idle");
 
-                self.client
-                    .ping(true, self.last_input_time, Duration::zero())?;
-                self.client.ping(
+                client.ping(true, self.last_input_time, Duration::zero())?;
+                client.ping(
                     false,
                     self.last_input_time + Duration::milliseconds(1),
                     Duration::zero(),
@@ -85,12 +80,10 @@ impl IdleState {
             result
         } else if self.is_idle {
             trace!("Reporting as idle");
-            self.client
-                .ping(true, self.last_input_time, now - self.last_input_time)
+            client.ping(true, self.last_input_time, now - self.last_input_time)
         } else {
             trace!("Reporting as not idle");
-            self.client
-                .ping(false, self.last_input_time, Duration::zero())
+            client.ping(false, self.last_input_time, Duration::zero())
         }
     }
 }
@@ -119,41 +112,30 @@ impl Dispatch<OrgKdeKwinIdleTimeout, ()> for IdleState {
 
 pub struct IdleWatcher {
     connection: WlEventConnection<IdleState>,
+    idle_state: IdleState,
 }
 
 impl Watcher for IdleWatcher {
-    fn new() -> anyhow::Result<Self> {
-        let connection: WlEventConnection<IdleState> = WlEventConnection::connect()?;
+    fn new(client: &Arc<ReportClient>) -> anyhow::Result<Self> {
+        let mut connection: WlEventConnection<IdleState> = WlEventConnection::connect()?;
         connection.get_kwin_idle()?;
 
-        Ok(Self { connection })
+        let timeout = u32::try_from(client.config.idle_timeout.as_secs() * 1000);
+        let mut idle_state =
+            IdleState::new(connection.get_kwin_idle_timeout(timeout.unwrap()).unwrap());
+        connection.event_queue.roundtrip(&mut idle_state).unwrap();
+
+        Ok(Self {
+            connection,
+            idle_state,
+        })
     }
 
-    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
-        let timeout = u32::try_from(client.config.idle_timeout.as_secs() * 1000);
-        let mut idle_state = IdleState::new(
-            self.connection
-                .get_kwin_idle_timeout(timeout.unwrap())
-                .unwrap(),
-            Arc::clone(client),
-        );
-        self.connection
-            .event_queue
-            .roundtrip(&mut idle_state)
-            .unwrap();
-
-        info!("Starting idle watcher");
-        loop {
-            if is_stopped.load(Ordering::Relaxed) {
-                warn!("Received an exit signal, shutting down");
-                break;
-            }
-            if let Err(e) = self.connection.event_queue.roundtrip(&mut idle_state) {
-                error!("Event queue is not processed: {e}");
-            } else if let Err(e) = idle_state.send_ping() {
-                error!("Error on idle iteration: {e}");
-            }
-            thread::sleep(client.config.poll_time_idle);
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
+        if let Err(e) = self.connection.event_queue.roundtrip(&mut self.idle_state) {
+            error!("Event queue is not processed: {e}");
+        } else if let Err(e) = self.idle_state.send_ping(client) {
+            error!("Error on idle iteration: {e}");
         }
     }
 }

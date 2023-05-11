@@ -1,13 +1,12 @@
 use super::{idle, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
 use zbus::blocking::Connection;
 
 pub struct IdleWatcher {
     dbus_connection: Connection,
+    is_idle: bool,
 }
 
 impl idle::SinceLastInput for IdleWatcher {
@@ -27,30 +26,22 @@ impl idle::SinceLastInput for IdleWatcher {
 }
 
 impl Watcher for IdleWatcher {
-    fn new() -> anyhow::Result<Self> {
+    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut watcher = Self {
             dbus_connection: Connection::session()?,
+            is_idle: false,
         };
         idle::SinceLastInput::seconds_since_input(&mut watcher)?;
 
         Ok(watcher)
     }
 
-    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
-        let mut is_idle = false;
-        info!("Starting idle watcher");
-        loop {
-            if is_stopped.load(Ordering::Relaxed) {
-                warn!("Received an exit signal, shutting down");
-                break;
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
+        match idle::ping_since_last_input(self, self.is_idle, client) {
+            Ok(is_idle_again) => {
+                self.is_idle = is_idle_again;
             }
-            match idle::ping_since_last_input(self, is_idle, client) {
-                Ok(is_idle_again) => {
-                    is_idle = is_idle_again;
-                }
-                Err(e) => error!("Error on idle iteration: {e}"),
-            };
-            thread::sleep(client.config.poll_time_idle);
-        }
+            Err(e) => error!("Error on idle iteration: {e}"),
+        };
     }
 }

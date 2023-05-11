@@ -8,7 +8,6 @@ use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
 use std::env::temp_dir;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc::channel, Arc, Mutex};
 use std::thread;
 use zbus::blocking::{Connection, ConnectionBuilder};
@@ -151,22 +150,19 @@ impl ActiveWindowInterface {
 }
 
 pub struct WindowWatcher {
-    kwin_script: KWinScript,
+    active_window: Arc<Mutex<ActiveWindow>>,
+    // Prolong its lifetime
+    _kwin_script: KWinScript,
 }
 
 impl Watcher for WindowWatcher {
-    fn new() -> anyhow::Result<Self> {
-        let kwin_script = KWinScript::new(Connection::session()?);
+    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+        let mut kwin_script = KWinScript::new(Connection::session()?);
         if kwin_script.is_loaded()? {
             debug!("KWin script is already loaded, unloading");
             kwin_script.unload()?;
         }
-
-        Ok(Self { kwin_script })
-    }
-
-    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
-        self.kwin_script.load().unwrap();
+        kwin_script.load().unwrap();
 
         let active_window = Arc::new(Mutex::new(ActiveWindow {
             caption: String::new(),
@@ -199,16 +195,15 @@ impl Watcher for WindowWatcher {
             panic!("Failed to run a DBus interface: {error}");
         }
 
-        info!("Starting active window watcher");
-        loop {
-            if is_stopped.load(Ordering::Relaxed) {
-                warn!("Received an exit signal, shutting down");
-                break;
-            }
-            if let Err(error) = send_active_window(client, &active_window) {
-                error!("Error on sending active window: {error}");
-            }
-            thread::sleep(client.config.poll_time_window);
+        Ok(Self {
+            active_window,
+            _kwin_script: kwin_script,
+        })
+    }
+
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
+        if let Err(error) = send_active_window(client, &self.active_window) {
+            error!("Error on sending active window: {error}");
         }
     }
 }

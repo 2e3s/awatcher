@@ -1,9 +1,7 @@
 use crate::report_client::ReportClient;
 use anyhow::Context;
 use serde::Deserialize;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
 use zbus::blocking::Connection;
 
 use super::Watcher;
@@ -77,7 +75,7 @@ impl WindowWatcher {
 }
 
 impl Watcher for WindowWatcher {
-    fn new() -> anyhow::Result<Self> {
+    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let watcher = Self {
             dbus_connection: Connection::session()?,
             last_app_id: String::new(),
@@ -87,17 +85,9 @@ impl Watcher for WindowWatcher {
         Ok(watcher)
     }
 
-    fn watch(&mut self, client: &Arc<ReportClient>, is_stopped: Arc<AtomicBool>) {
-        info!("Starting active window watcher");
-        loop {
-            if is_stopped.load(Ordering::Relaxed) {
-                warn!("Received an exit signal, shutting down");
-                break;
-            }
-            if let Err(error) = self.send_active_window(client) {
-                error!("Error on active window: {error}");
-            }
-            thread::sleep(client.config.poll_time_window);
+    fn run_iteration(&mut self, client: &Arc<ReportClient>) {
+        if let Err(error) = self.send_active_window(client) {
+            error!("Error on active window: {error}");
         }
     }
 }
