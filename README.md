@@ -5,8 +5,9 @@ Awatcher is a window activity and idle watcher with an optional tray and UI for 
 The goal is to compensate the fragmentation of desktop environments on Linux by supporting all reportable environments, 
 to add more flexibility to reports with filters, and to have better UX with the distribution by a single executable.
 
-The foundation is taken from [ActivityWatch](https://github.com/ActivityWatch), which includes the server and web UI.
-The unbundled watcher can replace the original idle and active window watchers in the original distribution if necessary.
+The foundation is [ActivityWatch](https://github.com/ActivityWatch), which includes the server and web UI.
+The unbundled watcher is supposed to replace the original idle and active window watchers from the original distribution.
+The bundled executable can be used independently as it contains the server, UI and tray.
 
 The crate also provides a library with watchers which can send the data to the server.
 
@@ -109,7 +110,18 @@ Matches are case sensitive regular expressions between implici ^ and $:
 - `.*` matches any number of any characters
 - `.+` matches 1 or more any characters.
 - `word` is an exact match.
-- Use escapes to match special characters, e.g. `org\.kde\.Dolpin`
+- Use escapes `\` to match special characters, e.g. `org\.kde\.Dolpin`
+
+The replacements in filters also support regexp captures.
+A captures takes a string in parentheses from the match and replaces `$N` in the replacement, where `N` is the number of parentheses.
+Example filter to remove the changed file indicator in Visual Studio Code:
+```toml
+[[awatcher.filters]]
+match-app-id = "code"
+match-title = "● (.*)"
+# Inserts the content within 1st parentheses, this can be in any form, e.g. "App $1 - $2/$3"
+replace-title = "$1"
+```
 
 Run the command with "debug" or "trace" verbosity and without reporting to server in the terminal
 to see what application names and titles are reported to the server.

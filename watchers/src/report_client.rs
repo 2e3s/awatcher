@@ -76,7 +76,11 @@ impl ReportClient {
         } else {
             title.to_string()
         };
-        trace!("Reporting app_id: {}, title: {}", app_id, title);
+        trace!(
+            "Reporting app_id: {}, title: {}",
+            inserted_app_id,
+            inserted_title
+        );
         data.insert("app".to_string(), Value::String(inserted_app_id));
         data.insert("title".to_string(), Value::String(inserted_title));
         let event = AwEvent {

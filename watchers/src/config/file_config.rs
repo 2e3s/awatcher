@@ -7,6 +7,48 @@ use crate::config::defaults;
 
 use super::filters::Filter;
 
+pub fn default_config() -> String {
+    format!(
+        r#"# The commented values are the defaults on the file creation
+[server]
+# port = {}
+# host = "{}"
+
+[awatcher]
+# idle-timeout-seconds={}
+# poll-time-idle-seconds={}
+# poll-time-window-seconds={}
+
+# Add as many filters as needed. The first matching filter stops the replacement.
+# There should be at least 1 match field, and at least 1 replace field.
+# Matches are case sensitive regular expressions between implici ^ and $, e.g.
+# - "." matches 1 any character
+# - ".*" matches any number of any characters
+# - ".+" matches 1 or more any characters.
+# - "word" is an exact match.
+# [[awatcher.filters]]
+# match-app-id = "navigator"
+# match-title = ".*Firefox.*"
+# replace-app-id = "firefox"
+# replace-title = "Unknown"
+
+# Use captures for app-id or title in the regular form to use parts of the original text
+# (parentheses for a capture, $1, $2 etc for each capture).
+# The example rule removes the changed file indicator from the title in Visual Studio Code:
+# "● file_config.rs - awatcher - Visual Studio Code" to "file_config.rs - awatcher - Visual Studio Code".
+# [[awatcher.filters]]
+# match-app-id = "code"
+# match-title = "● (.*)"
+# replace-title = "$1"
+"#,
+        defaults::port(),
+        defaults::host(),
+        defaults::idle_timeout_seconds(),
+        defaults::poll_time_idle_seconds(),
+        defaults::poll_time_window_seconds(),
+    )
+}
+
 #[derive(Deserialize, DefaultFromSerde)]
 pub struct ServerConfig {
     #[serde(default = "defaults::port")]
@@ -69,36 +111,7 @@ impl FileConfig {
 
             toml::from_str(&config_content)?
         } else {
-            let config = format!(
-                r#"# The commented values are the defaults on the file creation
-[server]
-# port = {}
-# host = "{}"
-
-[awatcher]
-# idle-timeout-seconds={}
-# poll-time-idle-seconds={}
-# poll-time-window-seconds={}
-
-# Add as many filters as needed. The first matching filter stops the replacement.
-# There should be at least 1 match field, and at least 1 replace field.
-# Matches are case sensitive regular expressions between implici ^ and $, e.g.
-# - "." matches 1 any character
-# - ".*" matches any number of any characters
-# - ".+" matches 1 or more any characters.
-# - "word" is an exact match.
-# [[awatcher.filters]]
-# match-app-id = "navigator"
-# match-title = ".*Firefox.*"
-# replace-app-id = "firefox"
-# replace-title = "Unknown"
-"#,
-                defaults::port(),
-                defaults::host(),
-                defaults::idle_timeout_seconds(),
-                defaults::poll_time_idle_seconds(),
-                defaults::poll_time_window_seconds(),
-            );
+            let config = default_config();
             let error = std::fs::create_dir(config_path.parent().unwrap());
             if let Err(e) = error {
                 if e.kind() != ErrorKind::AlreadyExists {
