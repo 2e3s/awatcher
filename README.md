@@ -34,7 +34,7 @@ To track your activities in browsers install the plugin for your browser from
 
 The executable can be bundled with a tray icon, ActivityWatch server and, optionally, Web UI (if steps 1-2 are done):
 
-1. Clone and follow the instruction in [ActivityWatch/aw-webui](https://github.com/ActivityWatch/aw-webui)
+1. Clone and follow the instruction in [ActivityWatch/aw-webui@839366e](https://github.com/ActivityWatch/aw-webui/commit/839366e66f859faadd7f9128de3bea14b25ce4ae)
 to build the "dist" folder, 
 1. Then zip it with `zip -r dist.zip aw-webui/dist`.
 2. Build the executable with `--features=bundle`.
@@ -112,9 +112,13 @@ Matches are case sensitive regular expressions between implici ^ and $:
 - `word` is an exact match.
 - Use escapes `\` to match special characters, e.g. `org\.kde\.Dolpin`
 
+#### Captures
+
 The replacements in filters also support regexp captures.
-A captures takes a string in parentheses from the match and replaces `$N` in the replacement, where `N` is the number of parentheses.
-Example filter to remove the changed file indicator in Visual Studio Code:
+A capture takes a string in parentheses from the match and replaces `$N` in the replacement.
+Example to remove the changed file indicator in Visual Studio Code:
+- Before: "● file_config.rs - awatcher - Visual Studio Code"
+- After: "file_config.rs - awatcher - Visual Studio Code"
 ```toml
 [[awatcher.filters]]
 match-app-id = "code"
@@ -122,6 +126,8 @@ match-title = "● (.*)"
 # Inserts the content within 1st parentheses, this can be in any form, e.g. "App $1 - $2/$3"
 replace-title = "$1"
 ```
+
+#### Debugging app-id and title
 
 Run the command with "debug" or "trace" verbosity and without reporting to server in the terminal
 to see what application names and titles are reported to the server.
