@@ -5,7 +5,7 @@ Awatcher is a window activity and idle watcher with an optional tray and UI for 
 The goal is to compensate the fragmentation of desktop environments on Linux by supporting all reportable environments, 
 to add more flexibility to reports with filters, and to have better UX with the distribution by a single executable.
 
-The foundation is [ActivityWatch](https://github.com/ActivityWatch), which includes the server and web UI.
+The foundation is [ActivityWatch](https://github.com/ActivityWatch), which includes the provided server and web UI.
 The unbundled watcher is supposed to replace the original idle and active window watchers from the original distribution.
 The bundled executable can be used independently as it contains the server, UI and tray.
 
@@ -15,9 +15,13 @@ The crate also provides a library with watchers which can send the data to the s
 
 ### Prerequisites
 
-- Rust stable toolchain
-- `pkg-config`
-- `libssl-dev`
+Names of packages are from Ubuntu, other distributions may have different names.
+
+- Rust stable or nightly (for the bundle) toolchain
+- pkg-config
+- libssl-dev
+- libdbus-1-dev (for the bundled version)
+- build-essential
 
 ### Compile
 
@@ -36,8 +40,9 @@ The executable can be bundled with a tray icon, ActivityWatch server and, option
 
 1. Clone and follow the instruction in [ActivityWatch/aw-webui@839366e](https://github.com/ActivityWatch/aw-webui/commit/839366e66f859faadd7f9128de3bea14b25ce4ae)
 to build the "dist" folder, 
-1. Then zip it with `zip -r dist.zip aw-webui/dist`.
-2. Build the executable with `--features=bundle`.
+1. Then zip it with `zip -r dist.zip ./dist`.
+1. Put the zip file to `src/bundle`.
+1. Build the executable with `--features=bundle`.
 
 This should be compiled on nightly. The complete bundled version is also built and released.
 

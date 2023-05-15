@@ -19,6 +19,7 @@ fn main() -> anyhow::Result<()> {
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&is_stopped))?;
 
     let config = config::from_cli()?;
+    #[cfg(feature = "bundle")]
     let no_tray = config.no_tray;
     let config = config.watchers_config;
 
