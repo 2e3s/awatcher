@@ -40,9 +40,7 @@ The executable can be bundled with a tray icon, ActivityWatch server and, option
 
 1. Clone and follow the instruction in [ActivityWatch/aw-webui@839366e](https://github.com/ActivityWatch/aw-webui/commit/839366e66f859faadd7f9128de3bea14b25ce4ae)
 to build the "dist" folder, 
-1. Then zip it with `zip -r dist.zip ./dist`.
-1. Put the zip file to `src/bundle`.
-1. Build the executable with `--features=bundle`.
+1. Build the executable with `AW_WEBUI_DIST=path/to/dist` and `--features=bundle`.
 
 This should be compiled on nightly. The complete bundled version is also built and released.
 

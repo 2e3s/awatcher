@@ -39,7 +39,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     #[cfg(feature = "bundle")]
-    bundle::run(&config, no_tray)?;
+    bundle::run(&config, no_tray);
 
     let client = ReportClient::new(config)?;
     let client = Arc::new(client);
