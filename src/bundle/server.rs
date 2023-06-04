@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use async_compat::Compat;
 use aw_server::endpoints::{build_rocket, embed_asset_resolver};
 use std::sync::Mutex;
 
@@ -23,7 +22,11 @@ pub fn run(port: u32) {
             device_id,
         };
 
-        let future = build_rocket(server_state, config).launch();
-        smol::block_on(Compat::new(future)).unwrap();
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(build_rocket(server_state, config).launch())
+            .unwrap();
     });
 }

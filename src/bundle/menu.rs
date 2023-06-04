@@ -22,7 +22,7 @@ impl ksni::Tray for Tray {
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         vec![
             ksni::menu::StandardItem {
-                label: "Statistics".into(),
+                label: "ActivityWatch".into(),
                 // https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
                 icon_name: "document-properties".into(),
                 activate: {
