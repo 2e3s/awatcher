@@ -10,6 +10,9 @@ repository = "https://github.com/2e3s/awatcher"
 name = "awatcher"
 path = "src/main.rs"
 
+[build-dependencies]
+image = { version = "0.24.6" }
+
 [workspace]
 members = ["watchers"]
 

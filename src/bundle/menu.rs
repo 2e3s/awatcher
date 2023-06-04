@@ -5,10 +5,14 @@ pub struct Tray {
 }
 
 impl ksni::Tray for Tray {
-    fn icon_name(&self) -> String {
-        // Taken from https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
-        "appointment-new".into()
+    fn icon_pixmap(&self) -> Vec<ksni::Icon> {
+        vec![ksni::Icon {
+            width: 100,
+            height: 100,
+            data: include_bytes!("./logo.argb32").to_vec(),
+        }]
     }
+
     fn title(&self) -> String {
         "Awatcher".into()
     }
@@ -16,6 +20,7 @@ impl ksni::Tray for Tray {
         vec![
             ksni::menu::StandardItem {
                 label: "Open".into(),
+                // https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
                 icon_name: "document-properties".into(),
                 activate: {
                     let url = format!("http://{}:{}", self.server_host, self.server_port);
