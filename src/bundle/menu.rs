@@ -1,7 +1,10 @@
+use std::path::PathBuf;
+
 #[derive(Debug)]
 pub struct Tray {
     pub server_host: String,
     pub server_port: u32,
+    pub config_file: PathBuf,
 }
 
 impl ksni::Tray for Tray {
@@ -19,14 +22,27 @@ impl ksni::Tray for Tray {
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         vec![
             ksni::menu::StandardItem {
-                label: "Open".into(),
+                label: "Statistics".into(),
                 // https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
                 icon_name: "document-properties".into(),
                 activate: {
                     let url = format!("http://{}:{}", self.server_host, self.server_port);
 
                     Box::new(move |_| {
-                        webbrowser::open(&url).unwrap();
+                        open::that(&url).unwrap();
+                    })
+                },
+                ..Default::default()
+            }
+            .into(),
+            ksni::menu::StandardItem {
+                label: "Configuration".into(),
+                icon_name: "preferences-other".into(),
+                activate: {
+                    let config_file = self.config_file.clone().into_os_string();
+
+                    Box::new(move |_| {
+                        open::that(&config_file).unwrap();
                     })
                 },
                 ..Default::default()

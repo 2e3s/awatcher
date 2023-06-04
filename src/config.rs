@@ -11,6 +11,7 @@ use watchers::config::FileConfig;
 
 pub struct RunnerConfig {
     pub watchers_config: Config,
+    pub config_file: PathBuf,
     pub no_tray: bool,
 }
 
@@ -93,6 +94,7 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
             filters: config.client.filters,
             no_server: *matches.get_one("no-server").unwrap(),
         },
+        config_file: config.config_file,
         #[cfg(feature = "bundle")]
         no_tray: *matches.get_one("no-tray").unwrap(),
         #[cfg(not(feature = "bundle"))]

@@ -91,19 +91,24 @@ pub struct FileConfig {
     #[serde(default)]
     #[serde(rename = "awatcher")]
     pub client: ClientConfig,
+    #[serde(default)]
+    pub config_file: PathBuf,
 }
 
 impl FileConfig {
     pub fn new(config_override: Option<PathBuf>) -> anyhow::Result<Self> {
-        let mut config_path: PathBuf =
-            dirs::config_dir().ok_or(anyhow!("Config directory is unknown"))?;
-        config_path.push("awatcher");
-        config_path.push("config.toml");
-        if let Some(config_override) = config_override {
-            config_path = config_override;
-        }
+        let config_path = if let Some(config_override) = config_override {
+            config_override
+        } else {
+            let mut system_config_path: PathBuf =
+                dirs::config_dir().ok_or(anyhow!("Config directory is unknown"))?;
+            system_config_path.push("awatcher");
+            system_config_path.push("config.toml");
 
-        let config = if config_path.exists() {
+            system_config_path
+        };
+
+        let mut config = if config_path.exists() {
             debug!("Reading config at {}", config_path.display());
             let config_content = std::fs::read_to_string(&config_path).with_context(|| {
                 format!("Impossible to read config file {}", config_path.display())
@@ -119,10 +124,11 @@ impl FileConfig {
                 }
             }
             debug!("Creading config at {}", config_path.display());
-            std::fs::write(config_path, config)?;
+            std::fs::write(&config_path, config)?;
 
             Self::default()
         };
+        config.config_file = config_path;
 
         Ok(config)
     }

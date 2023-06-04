@@ -21,6 +21,8 @@ fn main() -> anyhow::Result<()> {
     let config = config::from_cli()?;
     #[cfg(feature = "bundle")]
     let no_tray = config.no_tray;
+    #[cfg(feature = "bundle")]
+    let config_file = config.config_file;
     let config = config.watchers_config;
 
     if config.no_server {
@@ -39,7 +41,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     #[cfg(feature = "bundle")]
-    bundle::run(&config, no_tray);
+    bundle::run(&config, config_file, no_tray);
 
     let client = ReportClient::new(config)?;
     let client = Arc::new(client);
