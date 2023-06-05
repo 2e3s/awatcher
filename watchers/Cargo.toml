@@ -1,6 +1,6 @@
 [package]
 name = "watchers"
-version = "0.0.1"
+version = { workspace = true }
 authors = ["Demmie <2e3s19@gmail.com>"]
 edition = "2021"
 

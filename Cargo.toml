@@ -1,6 +1,6 @@
 [package]
 name = "awatcher"
-version = "0.1.0"
+version = { workspace = true }
 authors = ["Demmie <2e3s19@gmail.com>"]
 edition = "2021"
 license-file = "LICENSE"
@@ -15,6 +15,9 @@ image = { version = "0.24.6" }
 
 [workspace]
 members = ["watchers"]
+
+[workspace.package]
+version = "0.1.0"
 
 [workspace.dependencies]
 anyhow = "1.0.70"

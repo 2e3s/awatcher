@@ -1,8 +1,12 @@
 use anyhow::anyhow;
 use aw_server::endpoints::{build_rocket, embed_asset_resolver};
-use std::sync::Mutex;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
+use tokio::time::{sleep, Duration};
 
-pub fn run(port: u32) {
+pub fn run(port: u32, is_stopped: Arc<AtomicBool>) {
     std::thread::spawn(move || {
         let db_path = aw_server::dirs::db_path(false)
             .map_err(|_| anyhow!("DB path is not found"))
@@ -21,12 +25,28 @@ pub fn run(port: u32) {
             asset_resolver: embed_asset_resolver!("$AW_WEBUI_DIST"),
             device_id,
         };
+        let server = build_rocket(server_state, config).launch();
+
+        let check = async {
+            loop {
+                if is_stopped.load(Ordering::Relaxed) {
+                    warn!("Received an exit signal, stopping the server");
+                    break;
+                }
+
+                sleep(Duration::from_secs(1)).await;
+            }
+        };
 
         tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap()
-            .block_on(build_rocket(server_state, config).launch())
-            .unwrap();
+            .block_on(async {
+                tokio::select! (
+                    r = server => {r.unwrap();},
+                    _ = check => {},
+                );
+            });
     });
 }

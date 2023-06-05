@@ -41,7 +41,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     #[cfg(feature = "bundle")]
-    bundle::run(&config, config_file, no_tray);
+    bundle::run(&config, config_file, no_tray, Arc::clone(&is_stopped));
 
     let client = ReportClient::new(config)?;
     let client = Arc::new(client);

@@ -1,10 +1,17 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
 
 #[derive(Debug)]
 pub struct Tray {
     pub server_host: String,
     pub server_port: u32,
     pub config_file: PathBuf,
+    pub is_stopped: Arc<AtomicBool>,
 }
 
 impl ksni::Tray for Tray {
@@ -51,9 +58,13 @@ impl ksni::Tray for Tray {
             ksni::menu::StandardItem {
                 label: "Exit".into(),
                 icon_name: "application-exit".into(),
-                activate: Box::new(|_| {
-                    std::process::exit(0);
-                }),
+                activate: {
+                    let is_stopped = Arc::clone(&self.is_stopped);
+
+                    Box::new(move |_| {
+                        is_stopped.store(true, Ordering::Relaxed);
+                    })
+                },
                 ..Default::default()
             }
             .into(),
