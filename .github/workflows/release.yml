@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.*.*'
+
+env:
+  CARGO_TERM_COLOR: always
+jobs:
+  build:
+    # 22.04 is the earliest version with OpenSSL 3
+    runs-on: ubuntu-22.04
+    env:
+      AW_WEBUI_DIST: ./aw-webui/dist
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y curl
+          apt-get install build-essential -y
+          apt-get install libdbus-1-dev -y
+          apt-get install libssl-dev -y
+          apt-get install pkg-config -y
+      - name: install cargo-deb
+        run: cargo install cargo-deb
+
+      # Build aw-webui
+      - name: Checkout aw-webui
+        uses: actions/checkout@v3
+        with:
+          repository: ActivityWatch/aw-webui
+          path: aw-webui
+          ref: 839366e66f859faadd7f9128de3bea14b25ce4ae
+          submodules: true
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+      - name: Copy logo
+        run: cp media/logo/logo.png static/
+        working-directory: aw-webui
+      - run: npm ci
+        working-directory: aw-webui
+      - run: npm run build
+        working-directory: aw-webui
+
+      # Buil and upload binaries
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo build bundle
+        run: cargo build --release --features=bundle
+
+      - run: zip "awatcher-bundle.zip" awatcher
+        working-directory: target/release
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/release/awatcher-bundle.zip
+
+      - name: cargo build bare
+        run: cargo build --release
+
+      - run: zip "awatcher.zip" awatcher
+        working-directory: target/release
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/release/awatcher.zip
+
+      - name: cargo build deb
+        run: cargo deb --features=bundle
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file_glob: true
+          file: target/debian/*.deb

@@ -47,6 +47,7 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
             arg!(--port <PORT> "Custom server port")
                 .value_parser(value_parser!(u32))
                 .default_value(defaults::port().to_string()),
+            #[cfg(not(feature = "bundle"))]
             arg!(--host <HOST> "Custom server host")
                 .value_parser(value_parser!(String))
                 .default_value(defaults::host()),
@@ -56,10 +57,10 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
             arg!(--"poll-time-idle" <SECONDS> "Period between sending heartbeats to the server for idle activity")
                 .value_parser(value_parser!(u32))
                 .default_value(defaults::poll_time_idle_seconds().to_string()),
-            arg!(--"poll-time-window" <SECONDS> "Period between sending heartbeats to the server for idle activity")
+            arg!(--"poll-time-window" <SECONDS> "Period between sending heartbeats to the server for window activity")
                 .value_parser(value_parser!(u32))
                 .default_value(defaults::poll_time_window_seconds().to_string()),
-            arg!(--"no-server" "Don't communicate to the ActivityWatch server")
+            arg!(--"no-server" "Don't send data to the ActivityWatch server")
                 .value_parser(value_parser!(bool))
                 .action(ArgAction::SetTrue),
             #[cfg(feature = "bundle")]
@@ -138,6 +139,7 @@ fn merge_cli(config: &mut FileConfig, matches: &ArgMatches) {
         &mut config.client.idle_timeout_seconds,
     );
     get_arg_value("port", matches, &mut config.server.port);
+    #[cfg(not(feature = "bundle"))]
     get_arg_value("host", matches, &mut config.server.host);
 }
 
