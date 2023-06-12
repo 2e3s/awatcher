@@ -9,6 +9,9 @@ name = "watchers"
 crate-type = ["lib"]
 path = "src/lib.rs"
 
+[dev-dependencies]
+rstest = "0.17.0"
+
 [dependencies]
 aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust" }
 wayland-client = "0.30.1"

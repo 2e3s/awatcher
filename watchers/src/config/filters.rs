@@ -31,7 +31,7 @@ where
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq)]
 pub struct Replacement {
     pub replace_app_id: Option<String>,
     pub replace_title: Option<String>,
@@ -84,5 +84,86 @@ impl Filter {
             replacement.replace_title = Some(Self::replace(&self.match_title, title, new_title));
         }
         Some(replacement)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case::no_match(
+        (Some("firefox"), Some("Title")),
+        (None, Some("Secret")),
+        ("org.kde.dolphin", "/home/user"),
+        None
+    )]
+    #[case::app_id_match(
+        (Some(".*dolphin"), Some("Title")),
+        (None, Some("Secret")),
+        ("org.kde.dolphin", "/home/user"),
+        None
+    )]
+    #[case::title_match(
+        (Some("firefox"), Some("/home/user")),
+        (None, Some("Secret")),
+        ("org.kde.dolphin", "/home/user"),
+        None
+    )]
+    #[case::replace_title(
+        (Some(".*dolphin"), Some("/home/user")),
+        (None, Some("Secret")),
+        ("org.kde.dolphin", "/home/user"),
+        Some((None, Some("Secret")))
+    )]
+    #[case::replace_app_id(
+        (Some(".*dolphin"), Some("/home/user")),
+        (Some("FM"), None),
+        ("org.kde.dolphin", "/home/user"),
+        Some((Some("FM"), None))
+    )]
+    #[case::replace(
+        (Some(".*dolphin"), Some("/home/user")),
+        (Some("FM"), None),
+        ("org.kde.dolphin", "/home/user"),
+        Some((Some("FM"), None))
+    )]
+    #[case::replace_with_catch(
+        (Some("org\\.kde\\.(.*)"), None),
+        (Some("$1"), None),
+        ("org.kde.dolphin", "/home/user"),
+        Some((Some("dolphin"), None))
+    )]
+    #[case::skip_empty_matches(
+        (None, None),
+        (None, Some("Secret")),
+        ("org.kde.dolphin", "/home/user"),
+        None
+    )]
+    fn replacement(
+        #[case] matches: (Option<&str>, Option<&str>),
+        #[case] replaces: (Option<&str>, Option<&str>),
+        #[case] data: (&str, &str),
+        #[case] expect_replacement: Option<(Option<&str>, Option<&str>)>,
+    ) {
+        let (match_app_id, match_title) = matches;
+        let (replace_app_id, replace_title) = replaces;
+        let (app_id, title) = data;
+
+        let option_string = |s: &str| s.to_string();
+        let filter = Filter {
+            match_app_id: match_app_id.map(|s| format!("^{s}$").parse().unwrap()),
+            match_title: match_title.map(|s| format!("^{s}$").parse().unwrap()),
+            replace_app_id: replace_app_id.map(option_string),
+            replace_title: replace_title.map(option_string),
+        };
+
+        let replacement = filter.replacement(app_id, title);
+        let expect_replacement = expect_replacement.map(|r| Replacement {
+            replace_app_id: r.0.map(option_string),
+            replace_title: r.1.map(option_string),
+        });
+        assert_eq!(expect_replacement, replacement);
     }
 }
