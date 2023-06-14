@@ -1,10 +1,10 @@
 name: Release
-
+permissions:
+  contents: write
 on:
   push:
     tags:
       - 'v[0-9]*.*.*'
-
 env:
   CARGO_TERM_COLOR: always
 jobs:
@@ -18,12 +18,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y curl
-          apt-get install build-essential -y
-          apt-get install libdbus-1-dev -y
-          apt-get install libssl-dev -y
-          apt-get install pkg-config -y
+          sudo apt-get update
+          sudo apt-get install -y curl
+          sudo apt-get install build-essential -y
+          sudo apt-get install libdbus-1-dev -y
+          sudo apt-get install libssl-dev -y
+          sudo apt-get install pkg-config -y
       - name: install cargo-deb
         run: cargo install cargo-deb
 
@@ -54,7 +54,7 @@ jobs:
 
       - run: zip "awatcher-bundle.zip" awatcher
         working-directory: target/release
-      - name: Upload binaries to release
+      - name: Upload awatcher-bundle to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -65,15 +65,14 @@ jobs:
 
       - run: zip "awatcher.zip" awatcher
         working-directory: target/release
-      - name: Upload binaries to release
+      - name: Upload awatcher to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: target/release/awatcher.zip
 
-      - name: cargo build deb
-        run: cargo deb --features=bundle
-      - name: Upload binaries to release
+      - run: cargo deb
+      - name: Upload deb to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}

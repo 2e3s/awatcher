@@ -405,7 +405,7 @@ dependencies = [
 
 [[package]]
 name = "awatcher"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "aw-datastore",
@@ -3845,7 +3845,7 @@ checksum = "0046fef7e28c3804e5e38bfa31ea2a0f73905319b677e57ebe37e49358989b5d"
 
 [[package]]
 name = "watchers"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "aw-client-rust",

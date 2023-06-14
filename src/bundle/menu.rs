@@ -17,8 +17,8 @@ pub struct Tray {
 impl ksni::Tray for Tray {
     fn icon_pixmap(&self) -> Vec<ksni::Icon> {
         vec![ksni::Icon {
-            width: 100,
-            height: 100,
+            width: 128,
+            height: 128,
             data: include_bytes!("./logo.argb32").to_vec(),
         }]
     }
