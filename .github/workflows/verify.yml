@@ -29,6 +29,7 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --locked --all-targets --all-features --workspace -- -D warnings
+      - run: cargo clippy --locked --all-targets --workspace -- -D warnings
   test:
     runs-on: ubuntu-latest
     env:
