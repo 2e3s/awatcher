@@ -10,10 +10,11 @@ mod config;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use watchers::ConstructorFilter;
+use watchers::run_first_supported;
 use watchers::ReportClient;
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> anyhow::Result<()> {
     let is_stopped = Arc::new(AtomicBool::new(false));
     signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&is_stopped))?;
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&is_stopped))?;
@@ -40,33 +41,27 @@ fn main() -> anyhow::Result<()> {
         config.poll_time_window.as_secs()
     );
 
-    #[cfg(feature = "bundle")]
-    bundle::run(&config, config_file, no_tray, Arc::clone(&is_stopped));
-
     let client = ReportClient::new(config)?;
     let client = Arc::new(client);
 
-    let mut thread_handlers = Vec::new();
+    let idle_handler = run_first_supported(watchers::IDLE, &client, Arc::clone(&is_stopped));
+    let active_window_handler =
+        run_first_supported(watchers::ACTIVE_WINDOW, &client, Arc::clone(&is_stopped));
 
-    if let Some(idle_handler) = watchers::IDLE.run_first_supported(&client, Arc::clone(&is_stopped))
+    #[cfg(not(feature = "bundle"))]
     {
-        thread_handlers.push(idle_handler);
-    } else {
-        warn!("No supported idle handler is found");
+        tokio::select!(
+            _ = idle_handler => Ok(()),
+            _ = active_window_handler => Ok(()),
+        )
     }
 
-    if let Some(active_window_handler) =
-        watchers::ACTIVE_WINDOW.run_first_supported(&client, is_stopped)
+    #[cfg(feature = "bundle")]
     {
-        thread_handlers.push(active_window_handler);
-    } else {
-        warn!("No supported active window handler is found");
+        tokio::select!(
+            _ = idle_handler => Ok(()),
+            _ = active_window_handler => Ok(()),
+            _ = bundle::run(client.config.host.clone(), client.config.port, config_file, no_tray, Arc::clone(&is_stopped)) => Ok(()),
+        )
     }
-
-    for handler in thread_handlers {
-        if handler.join().is_err() {
-            error!("Thread failed with error");
-        }
-    }
-    Ok(())
 }

@@ -20,7 +20,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    thread::{self, JoinHandle},
+    thread,
     time::Duration,
 };
 
@@ -52,25 +52,6 @@ pub trait Watcher: Send {
     where
         Self: Sized;
 
-    fn run(
-        &mut self,
-        watcher_type: &WatcherType,
-        client: &Arc<ReportClient>,
-        is_stopped: Arc<AtomicBool>,
-    ) {
-        info!("Starting {watcher_type} watcher");
-        loop {
-            if is_stopped.load(Ordering::Relaxed) {
-                warn!("Received an exit signal, shutting down {watcher_type}");
-                break;
-            }
-            if let Err(e) = self.run_iteration(client) {
-                error!("Error on {watcher_type} iteration: {e}");
-            }
-            thread::sleep(watcher_type.sleep_time(&client.config));
-        }
-    }
-
     fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()>;
 }
 
@@ -81,51 +62,55 @@ type WatcherConstructors = [(
     fn(&Arc<ReportClient>) -> anyhow::Result<BoxedWatcher>,
 )];
 
-pub trait ConstructorFilter {
-    fn filter_first_supported(
-        &self,
-        client: &Arc<ReportClient>,
-    ) -> Option<(&WatcherType, BoxedWatcher)>;
-
-    fn run_first_supported(
-        &'static self,
-        client: &Arc<ReportClient>,
-        is_stopped: Arc<AtomicBool>,
-    ) -> Option<JoinHandle<()>>;
+pub fn filter_first_supported(
+    watcher_constructors: &'static WatcherConstructors,
+    client: &Arc<ReportClient>,
+) -> Option<(&'static WatcherType, BoxedWatcher)> {
+    watcher_constructors
+        .iter()
+        .find_map(|(name, watcher_type, watcher)| match watcher(client) {
+            Ok(watcher) => {
+                info!("Selected {name} as {watcher_type} watcher");
+                Some((watcher_type, watcher))
+            }
+            Err(e) => {
+                debug!("{name} cannot run: {e}");
+                None
+            }
+        })
 }
 
-impl ConstructorFilter for WatcherConstructors {
-    fn filter_first_supported(
-        &self,
-        client: &Arc<ReportClient>,
-    ) -> Option<(&WatcherType, BoxedWatcher)> {
-        self.iter()
-            .find_map(|(name, watcher_type, watcher)| match watcher(client) {
-                Ok(watcher) => {
-                    info!("Selected {name} as {watcher_type} watcher");
-                    Some((watcher_type, watcher))
-                }
-                Err(e) => {
-                    debug!("{name} cannot run: {e}");
-                    None
-                }
-            })
-    }
-
-    fn run_first_supported(
-        &'static self,
-        client: &Arc<ReportClient>,
-        is_stopped: Arc<AtomicBool>,
-    ) -> Option<JoinHandle<()>> {
-        let idle_watcher = self.filter_first_supported(client);
-        if let Some((watcher_type, mut watcher)) = idle_watcher {
-            let thread_client = Arc::clone(client);
-            let idle_handler =
-                thread::spawn(move || watcher.run(watcher_type, &thread_client, is_stopped));
-            Some(idle_handler)
-        } else {
-            None
+async fn run_watcher(
+    watcher: &mut Box<dyn Watcher>,
+    watcher_type: &WatcherType,
+    client: &Arc<ReportClient>,
+    is_stopped: Arc<AtomicBool>,
+) {
+    info!("Starting {watcher_type} watcher");
+    loop {
+        if is_stopped.load(Ordering::Relaxed) {
+            warn!("Received an exit signal, shutting down {watcher_type}");
+            break;
         }
+        if let Err(e) = watcher.run_iteration(client) {
+            error!("Error on {watcher_type} iteration: {e}");
+        }
+        thread::sleep(watcher_type.sleep_time(&client.config));
+    }
+}
+
+pub async fn run_first_supported(
+    watcher_constructors: &'static WatcherConstructors,
+    client: &Arc<ReportClient>,
+    is_stopped: Arc<AtomicBool>,
+) -> bool {
+    let supported_watcher = filter_first_supported(watcher_constructors, client);
+    if let Some((watcher_type, mut watcher)) = supported_watcher {
+        let thread_client = Arc::clone(client);
+        run_watcher(&mut watcher, watcher_type, &thread_client, is_stopped).await;
+        true
+    } else {
+        false
     }
 }
 
