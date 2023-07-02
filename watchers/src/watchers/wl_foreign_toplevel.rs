@@ -8,6 +8,7 @@ use super::wl_connection::WlEventConnection;
 use super::{wl_connection::subscribe_state, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use wayland_client::{
@@ -117,7 +118,7 @@ pub struct WindowWatcher {
 }
 
 impl WindowWatcher {
-    fn send_active_window(&self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn send_active_window(&self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         let active_window_id = self
             .toplevel_state
             .current_window_id
@@ -133,12 +134,14 @@ impl WindowWatcher {
 
         client
             .send_active_window(&active_window.app_id, &active_window.title)
+            .await
             .with_context(|| "Failed to send heartbeat for active window")
     }
 }
 
+#[async_trait]
 impl Watcher for WindowWatcher {
-    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut connection: WlEventConnection<ToplevelState> = WlEventConnection::connect()?;
         connection.get_foreign_toplevel_manager()?;
 
@@ -155,12 +158,12 @@ impl Watcher for WindowWatcher {
         })
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
             .event_queue
             .roundtrip(&mut self.toplevel_state)
             .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
 
-        self.send_active_window(client)
+        self.send_active_window(client).await
     }
 }

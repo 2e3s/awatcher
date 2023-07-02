@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use super::{idle, x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
 use std::sync::Arc;
@@ -13,8 +15,9 @@ impl idle::SinceLastInput for IdleWatcher {
     }
 }
 
+#[async_trait]
 impl Watcher for IdleWatcher {
-    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut client = X11Client::new()?;
 
         // Check if screensaver extension is supported
@@ -26,8 +29,8 @@ impl Watcher for IdleWatcher {
         })
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        self.is_idle = idle::ping_since_last_input(self, self.is_idle, client)?;
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        self.is_idle = idle::ping_since_last_input(self, self.is_idle, client).await?;
 
         Ok(())
     }

@@ -291,14 +291,15 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "aw-client-rust"
 version = "0.1.0"
-source = "git+https://github.com/ActivityWatch/aw-server-rust#49b2026b2b61f8d8d017e93dca1d3754dcfef0d5"
+source = "git+https://github.com/ActivityWatch/aw-server-rust?rev=d4253ed#d4253ed64dc6547a821190cc29bf7dca72c616d1"
 dependencies = [
- "aw-models 0.1.0 (git+https://github.com/ActivityWatch/aw-server-rust)",
+ "aw-models 0.1.0 (git+https://github.com/ActivityWatch/aw-server-rust?rev=d4253ed)",
  "chrono",
  "gethostname 0.4.1",
  "reqwest",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -332,7 +333,7 @@ dependencies = [
 [[package]]
 name = "aw-models"
 version = "0.1.0"
-source = "git+https://github.com/ActivityWatch/aw-server-rust#49b2026b2b61f8d8d017e93dca1d3754dcfef0d5"
+source = "git+https://github.com/ActivityWatch/aw-server-rust?rev=d4253ed#d4253ed64dc6547a821190cc29bf7dca72c616d1"
 dependencies = [
  "chrono",
  "log",
@@ -418,7 +419,6 @@ dependencies = [
  "log",
  "open",
  "rust-embed",
- "signal-hook",
  "tokio",
  "toml 0.7.3",
  "watchers",
@@ -3147,16 +3147,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "signal-hook"
-version = "0.3.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "732768f1176d21d09e076c23a93123d40bba92d50c4058da34d45c8de8e682b9"
-dependencies = [
- "libc",
- "signal-hook-registry",
-]
-
-[[package]]
 name = "signal-hook-registry"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3848,6 +3838,7 @@ name = "watchers"
 version = "0.1.1"
 dependencies = [
  "anyhow",
+ "async-trait",
  "aw-client-rust",
  "chrono",
  "dirs 5.0.0",
@@ -3858,6 +3849,7 @@ dependencies = [
  "serde",
  "serde_default",
  "serde_json",
+ "tokio",
  "toml 0.7.3",
  "wayland-backend",
  "wayland-client",

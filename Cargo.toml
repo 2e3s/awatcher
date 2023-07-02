@@ -23,6 +23,7 @@ version = "0.1.1"
 [workspace.dependencies]
 anyhow = "1.0.70"
 log = { version = "0.4.17", features = ["std"] }
+tokio = { version = "1.28.2" }
 
 [dependencies]
 watchers = { path = "./watchers", default-features = false }
@@ -32,8 +33,7 @@ clap = { version = "4.2.1", features = ["string"] }
 fern = { version = "0.6.2", features = ["colored"] }
 log = { workspace = true }
 anyhow = { workspace = true }
-signal-hook = "0.3.15"
-tokio = { version = "1.28.2", features = ["rt", "macros"] }
+tokio = { workspace = true, features = ["rt", "macros", "signal"] }
 
 ksni = {version = "0.2.0", optional = true}
 aw-server = { git = "https://github.com/2e3s/aw-server-rust", optional = true, rev = "1c23a55" }

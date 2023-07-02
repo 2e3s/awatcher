@@ -1,8 +1,9 @@
 use crate::report_client::ReportClient;
 use anyhow::Context;
+use async_trait::async_trait;
 use serde::Deserialize;
 use std::sync::Arc;
-use zbus::blocking::Connection;
+use zbus::Connection;
 
 use super::Watcher;
 
@@ -19,14 +20,17 @@ struct WindowData {
 }
 
 impl WindowWatcher {
-    fn get_window_data(&self) -> anyhow::Result<WindowData> {
-        let call_response = self.dbus_connection.call_method(
-            Some("org.gnome.Shell"),
-            "/org/gnome/shell/extensions/FocusedWindow",
-            Some("org.gnome.shell.extensions.FocusedWindow"),
-            "Get",
-            &(),
-        );
+    async fn get_window_data(&self) -> anyhow::Result<WindowData> {
+        let call_response = self
+            .dbus_connection
+            .call_method(
+                Some("org.gnome.Shell"),
+                "/org/gnome/shell/extensions/FocusedWindow",
+                Some("org.gnome.shell.extensions.FocusedWindow"),
+                "Get",
+                &(),
+            )
+            .await;
 
         match call_response {
             Ok(json) => {
@@ -48,8 +52,8 @@ impl WindowWatcher {
         }
     }
 
-    fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
-        let data = self.get_window_data();
+    async fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
+        let data = self.get_window_data().await;
         if let Err(e) = data {
             if e.to_string().contains("Object does not exist at path") {
                 trace!("The extension seems to have stopped");
@@ -70,14 +74,16 @@ impl WindowWatcher {
 
         client
             .send_active_window(&self.last_app_id, &self.last_title)
+            .await
             .with_context(|| "Failed to send heartbeat for active window")
     }
 }
 
+#[async_trait]
 impl Watcher for WindowWatcher {
-    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let watcher = Self {
-            dbus_connection: Connection::session()?,
+            dbus_connection: Connection::session().await?,
             last_app_id: String::new(),
             last_title: String::new(),
         };
@@ -85,7 +91,7 @@ impl Watcher for WindowWatcher {
         Ok(watcher)
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        self.send_active_window(client)
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        self.send_active_window(client).await
     }
 }

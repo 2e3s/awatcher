@@ -12,15 +12,15 @@ pub struct ReportClient {
 }
 
 impl ReportClient {
-    pub fn new(config: Config) -> anyhow::Result<Self> {
+    pub async fn new(config: Config) -> anyhow::Result<Self> {
         let client = AwClient::new(&config.host, &config.port.to_string(), "awatcher");
 
         let hostname = gethostname::gethostname().into_string().unwrap();
         let idle_bucket_name = format!("aw-watcher-afk_{hostname}");
         let active_window_bucket_name = format!("aw-watcher-window_{hostname}");
         if !config.no_server {
-            Self::create_bucket(&client, &idle_bucket_name, "afkstatus")?;
-            Self::create_bucket(&client, &active_window_bucket_name, "currentwindow")?;
+            Self::create_bucket(&client, &idle_bucket_name, "afkstatus").await?;
+            Self::create_bucket(&client, &active_window_bucket_name, "currentwindow").await?;
         }
 
         Ok(Self {
@@ -31,7 +31,7 @@ impl ReportClient {
         })
     }
 
-    pub fn ping(
+    pub async fn ping(
         &self,
         is_idle: bool,
         timestamp: DateTime<Utc>,
@@ -57,10 +57,11 @@ impl ReportClient {
         let pulsetime = (self.config.idle_timeout + self.config.poll_time_idle).as_secs_f64();
         self.client
             .heartbeat(&self.idle_bucket_name, &event, pulsetime)
+            .await
             .with_context(|| "Failed to send heartbeat")
     }
 
-    pub fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
+    pub async fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
         let mut data = Map::new();
 
         let replacement = self.config.window_data_replacement(app_id, title);
@@ -97,16 +98,18 @@ impl ReportClient {
         let interval_margin = self.config.poll_time_idle.as_secs_f64() + 1.0;
         self.client
             .heartbeat(&self.active_window_bucket_name, &event, interval_margin)
+            .await
             .with_context(|| "Failed to send heartbeat for active window")
     }
 
-    fn create_bucket(
+    async fn create_bucket(
         client: &AwClient,
         bucket_name: &str,
         bucket_type: &str,
     ) -> anyhow::Result<()> {
         client
             .create_bucket_simple(bucket_name, bucket_type)
+            .await
             .with_context(|| format!("Failed to create bucket {bucket_name}"))
     }
 }

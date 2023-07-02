@@ -1,17 +1,13 @@
-use std::{
-    path::PathBuf,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-};
+use std::path::PathBuf;
+
+use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug)]
 pub struct Tray {
     pub server_host: String,
     pub server_port: u32,
     pub config_file: PathBuf,
-    pub is_stopped: Arc<AtomicBool>,
+    pub shutdown_sender: UnboundedSender<()>,
 }
 
 impl ksni::Tray for Tray {
@@ -59,10 +55,10 @@ impl ksni::Tray for Tray {
                 label: "Exit".into(),
                 icon_name: "application-exit".into(),
                 activate: {
-                    let is_stopped = Arc::clone(&self.is_stopped);
+                    let shutdown_sender = self.shutdown_sender.clone();
 
                     Box::new(move |_| {
-                        is_stopped.store(true, Ordering::Relaxed);
+                        shutdown_sender.send(()).unwrap();
                     })
                 },
                 ..Default::default()

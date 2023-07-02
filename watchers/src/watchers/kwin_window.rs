@@ -6,10 +6,12 @@
 use super::Watcher;
 use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
+use async_trait::async_trait;
 use std::env::temp_dir;
 use std::path::Path;
-use std::sync::{mpsc::channel, Arc, Mutex};
+use std::sync::{mpsc::channel, Arc};
 use std::thread;
+use tokio::sync::Mutex;
 use zbus::blocking::{Connection, ConnectionBuilder};
 use zbus::dbus_interface;
 
@@ -112,14 +114,15 @@ impl Drop for KWinScript {
     }
 }
 
-fn send_active_window(
+async fn send_active_window(
     client: &ReportClient,
     active_window: &Arc<Mutex<ActiveWindow>>,
 ) -> anyhow::Result<()> {
-    let active_window = active_window.lock().expect("Lock cannot be acquired");
+    let active_window = active_window.lock().await;
 
     client
         .send_active_window(&active_window.resource_class, &active_window.caption)
+        .await
         .with_context(|| "Failed to send heartbeat for active window")
 }
 
@@ -135,14 +138,14 @@ struct ActiveWindowInterface {
 
 #[dbus_interface(name = "com._2e3s.Awatcher")]
 impl ActiveWindowInterface {
-    fn notify_active_window(
+    async fn notify_active_window(
         &mut self,
         caption: String,
         resource_class: String,
         resource_name: String,
     ) {
         debug!("Active window class: \"{resource_class}\", name: \"{resource_name}\", caption: \"{caption}\"");
-        let mut active_window = self.active_window.lock().unwrap();
+        let mut active_window = self.active_window.lock().await;
         active_window.caption = caption;
         active_window.resource_class = resource_class;
         active_window.resource_name = resource_name;
@@ -155,8 +158,9 @@ pub struct WindowWatcher {
     _kwin_script: KWinScript,
 }
 
+#[async_trait]
 impl Watcher for WindowWatcher {
-    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut kwin_script = KWinScript::new(Connection::session()?);
         if kwin_script.is_loaded()? {
             debug!("KWin script is already loaded, unloading");
@@ -201,7 +205,7 @@ impl Watcher for WindowWatcher {
         })
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        send_active_window(client, &self.active_window)
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        send_active_window(client, &self.active_window).await
     }
 }

@@ -8,17 +8,14 @@ extern crate log;
 mod bundle;
 mod config;
 
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use watchers::run_first_supported;
-use watchers::ReportClient;
+use tokio::signal::unix::{signal, SignalKind};
+#[cfg(feature = "bundle")]
+use tokio::sync::mpsc;
+use watchers::{run_first_supported, ReportClient, WatcherType};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&is_stopped))?;
-    signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&is_stopped))?;
-
     let config = config::from_cli()?;
     #[cfg(feature = "bundle")]
     let no_tray = config.no_tray;
@@ -40,28 +37,49 @@ async fn main() -> anyhow::Result<()> {
         "Window polling period: {} seconds",
         config.poll_time_window.as_secs()
     );
+    #[cfg(feature = "bundle")]
+    let (shutdown_send, mut shutdown_recv) = mpsc::unbounded_channel();
+    #[cfg(feature = "bundle")]
+    let bundle_handle = tokio::spawn(bundle::run(
+        config.host.clone(),
+        config.port,
+        config_file,
+        no_tray,
+        shutdown_send,
+    ));
 
-    let client = ReportClient::new(config)?;
-    let client = Arc::new(client);
+    let client = Arc::new(ReportClient::new(config).await?);
 
-    let idle_handler = run_first_supported(watchers::IDLE, &client, Arc::clone(&is_stopped));
-    let active_window_handler =
-        run_first_supported(watchers::ACTIVE_WINDOW, &client, Arc::clone(&is_stopped));
+    let idle_future = run_first_supported(Arc::clone(&client), &WatcherType::Idle);
+    let active_window_future = run_first_supported(Arc::clone(&client), &WatcherType::ActiveWindow);
+    let sigterm = async {
+        signal(SignalKind::terminate()).unwrap().recv().await;
+        warn!("Caught SIGTERM, shutting down...");
+    };
+    let sigint = async {
+        signal(SignalKind::interrupt()).unwrap().recv().await;
+        warn!("Caught SIGINT, shutting down...");
+    };
 
     #[cfg(not(feature = "bundle"))]
     {
         tokio::select!(
-            _ = idle_handler => Ok(()),
-            _ = active_window_handler => Ok(()),
+            _ = tokio::spawn(idle_future) => Ok(()),
+            _ = tokio::spawn(active_window_future) => Ok(()),
+            _ = sigterm => Ok(()),
+            _ = sigint => Ok(()),
         )
     }
 
     #[cfg(feature = "bundle")]
     {
         tokio::select!(
-            _ = idle_handler => Ok(()),
-            _ = active_window_handler => Ok(()),
-            _ = bundle::run(client.config.host.clone(), client.config.port, config_file, no_tray, Arc::clone(&is_stopped)) => Ok(()),
+            _ = bundle_handle => Ok(()),
+            _ = tokio::spawn(idle_future) => Ok(()),
+            _ = tokio::spawn(active_window_future) => Ok(()),
+            _ = sigterm => Ok(()),
+            _ = sigint => Ok(()),
+            _ = shutdown_recv.recv() => Ok(()),
         )
     }
 }

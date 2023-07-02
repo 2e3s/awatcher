@@ -6,7 +6,7 @@ pub trait SinceLastInput {
     fn seconds_since_input(&mut self) -> anyhow::Result<u32>;
 }
 
-pub fn ping_since_last_input(
+pub async fn ping_since_last_input(
     watcher: &mut impl SinceLastInput,
     is_idle: bool,
     client: &Arc<ReportClient>,
@@ -24,24 +24,28 @@ pub fn ping_since_last_input(
 
     if is_idle && u64::from(seconds_since_input) < client.config.idle_timeout.as_secs() {
         debug!("No longer idle");
-        client.ping(is_idle, last_input, duration_zero)?;
+        client.ping(is_idle, last_input, duration_zero).await?;
         is_idle_again = false;
         // ping with timestamp+1ms with the next event (to ensure the latest event gets retrieved by get_event)
-        client.ping(is_idle, last_input + duration_1ms, duration_zero)?;
+        client
+            .ping(is_idle, last_input + duration_1ms, duration_zero)
+            .await?;
     } else if !is_idle && u64::from(seconds_since_input) >= client.config.idle_timeout.as_secs() {
         debug!("Idle again");
-        client.ping(is_idle, last_input, duration_zero)?;
+        client.ping(is_idle, last_input, duration_zero).await?;
         is_idle_again = true;
         // ping with timestamp+1ms with the next event (to ensure the latest event gets retrieved by get_event)
-        client.ping(is_idle, last_input + duration_1ms, time_since_input)?;
+        client
+            .ping(is_idle, last_input + duration_1ms, time_since_input)
+            .await?;
     } else {
         // Send a heartbeat if no state change was made
         if is_idle {
             trace!("Reporting as idle");
-            client.ping(is_idle, last_input, time_since_input)?;
+            client.ping(is_idle, last_input, time_since_input).await?;
         } else {
             trace!("Reporting as not idle");
-            client.ping(is_idle, last_input, duration_zero)?;
+            client.ping(is_idle, last_input, duration_zero).await?;
         }
     }
 

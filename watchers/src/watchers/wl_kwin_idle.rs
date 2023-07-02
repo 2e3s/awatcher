@@ -3,6 +3,7 @@ use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
 use anyhow::anyhow;
+use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use std::sync::Arc;
 use wayland_client::{
@@ -52,7 +53,7 @@ impl IdleState {
         debug!("Resumed");
     }
 
-    fn send_ping(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn send_ping(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         let now = Utc::now();
         if !self.is_idle {
             self.last_input_time = now;
@@ -61,30 +62,42 @@ impl IdleState {
         if self.is_changed {
             let result = if self.is_idle {
                 debug!("Reporting as changed to idle");
-                client.ping(false, self.last_input_time, Duration::zero())?;
-                client.ping(
-                    true,
-                    self.last_input_time + Duration::milliseconds(1),
-                    Duration::zero(),
-                )
+                client
+                    .ping(false, self.last_input_time, Duration::zero())
+                    .await?;
+                client
+                    .ping(
+                        true,
+                        self.last_input_time + Duration::milliseconds(1),
+                        Duration::zero(),
+                    )
+                    .await
             } else {
                 debug!("Reporting as no longer idle");
 
-                client.ping(true, self.last_input_time, Duration::zero())?;
-                client.ping(
-                    false,
-                    self.last_input_time + Duration::milliseconds(1),
-                    Duration::zero(),
-                )
+                client
+                    .ping(true, self.last_input_time, Duration::zero())
+                    .await?;
+                client
+                    .ping(
+                        false,
+                        self.last_input_time + Duration::milliseconds(1),
+                        Duration::zero(),
+                    )
+                    .await
             };
             self.is_changed = false;
             result
         } else if self.is_idle {
             trace!("Reporting as idle");
-            client.ping(true, self.last_input_time, now - self.last_input_time)
+            client
+                .ping(true, self.last_input_time, now - self.last_input_time)
+                .await
         } else {
             trace!("Reporting as not idle");
-            client.ping(false, self.last_input_time, Duration::zero())
+            client
+                .ping(false, self.last_input_time, Duration::zero())
+                .await
         }
     }
 }
@@ -116,8 +129,9 @@ pub struct IdleWatcher {
     idle_state: IdleState,
 }
 
+#[async_trait]
 impl Watcher for IdleWatcher {
-    fn new(client: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    async fn new(client: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut connection: WlEventConnection<IdleState> = WlEventConnection::connect()?;
         connection.get_kwin_idle()?;
 
@@ -132,12 +146,12 @@ impl Watcher for IdleWatcher {
         })
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
             .event_queue
             .roundtrip(&mut self.idle_state)
             .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
 
-        self.idle_state.send_ping(client)
+        self.idle_state.send_ping(client).await
     }
 }

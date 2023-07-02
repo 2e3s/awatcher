@@ -1,6 +1,7 @@
 use super::{idle, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
+use async_trait::async_trait;
 use std::sync::Arc;
 use zbus::blocking::Connection;
 
@@ -25,8 +26,9 @@ impl idle::SinceLastInput for IdleWatcher {
     }
 }
 
+#[async_trait]
 impl Watcher for IdleWatcher {
-    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut watcher = Self {
             dbus_connection: Connection::session()?,
             is_idle: false,
@@ -36,8 +38,8 @@ impl Watcher for IdleWatcher {
         Ok(watcher)
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        self.is_idle = idle::ping_since_last_input(self, self.is_idle, client)?;
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        self.is_idle = idle::ping_since_last_input(self, self.is_idle, client).await?;
 
         Ok(())
     }

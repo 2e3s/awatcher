@@ -1,6 +1,7 @@
 use super::{x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
+use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct WindowWatcher {
@@ -10,7 +11,7 @@ pub struct WindowWatcher {
 }
 
 impl WindowWatcher {
-    fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
+    async fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
         let data = self.client.active_window_data()?;
 
         if data.app_id != self.last_app_id || data.title != self.last_title {
@@ -24,12 +25,14 @@ impl WindowWatcher {
 
         client
             .send_active_window(&self.last_app_id, &self.last_title)
+            .await
             .with_context(|| "Failed to send heartbeat for active window")
     }
 }
 
+#[async_trait]
 impl Watcher for WindowWatcher {
-    fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut client = X11Client::new()?;
         client.active_window_data()?;
 
@@ -40,7 +43,7 @@ impl Watcher for WindowWatcher {
         })
     }
 
-    fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        self.send_active_window(client)
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+        self.send_active_window(client).await
     }
 }
