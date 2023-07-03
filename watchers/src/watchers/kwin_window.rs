@@ -12,8 +12,8 @@ use std::path::Path;
 use std::sync::{mpsc::channel, Arc};
 use std::thread;
 use tokio::sync::Mutex;
-use zbus::blocking::{Connection, ConnectionBuilder};
 use zbus::dbus_interface;
+use zbus::{Connection, ConnectionBuilder};
 
 const KWIN_SCRIPT_NAME: &str = "activity_watcher";
 const KWIN_SCRIPT: &str = include_str!("kwin_window.js");
@@ -31,20 +31,19 @@ impl KWinScript {
         }
     }
 
-    fn load(&mut self) -> anyhow::Result<()> {
+    async fn load(&mut self) -> anyhow::Result<()> {
         let path = temp_dir().join("kwin_window.js");
         std::fs::write(&path, KWIN_SCRIPT).unwrap();
 
-        let result = self
-            .get_registered_number(&path)
-            .and_then(|number| self.start(number));
+        let number = self.get_registered_number(&path).await?;
+        let result = self.start(number).await;
         std::fs::remove_file(&path)?;
         self.is_loaded = true;
 
         result
     }
 
-    fn is_loaded(&self) -> anyhow::Result<bool> {
+    async fn is_loaded(&self) -> anyhow::Result<bool> {
         self.dbus_connection
             .call_method(
                 Some("org.kde.KWin"),
@@ -52,12 +51,13 @@ impl KWinScript {
                 Some("org.kde.kwin.Scripting"),
                 "isScriptLoaded",
                 &KWIN_SCRIPT_NAME,
-            )?
+            )
+            .await?
             .body::<bool>()
             .map_err(std::convert::Into::into)
     }
 
-    fn get_registered_number(&self, path: &Path) -> anyhow::Result<i32> {
+    async fn get_registered_number(&self, path: &Path) -> anyhow::Result<i32> {
         let temp_path = path
             .to_str()
             .ok_or(anyhow!("Temporary file path is not valid"))?;
@@ -70,12 +70,13 @@ impl KWinScript {
                 "loadScript",
                 // since OsStr does not implement zvariant::Type, the temp-path must be valid utf-8
                 &(temp_path, KWIN_SCRIPT_NAME),
-            )?
+            )
+            .await?
             .body::<i32>()
             .map_err(std::convert::Into::into)
     }
 
-    fn unload(&self) -> anyhow::Result<bool> {
+    async fn unload(&self) -> anyhow::Result<bool> {
         self.dbus_connection
             .call_method(
                 Some("org.kde.KWin"),
@@ -83,12 +84,13 @@ impl KWinScript {
                 Some("org.kde.kwin.Scripting"),
                 "unloadScript",
                 &KWIN_SCRIPT_NAME,
-            )?
+            )
+            .await?
             .body::<bool>()
             .map_err(std::convert::Into::into)
     }
 
-    fn start(&self, script_number: i32) -> anyhow::Result<()> {
+    async fn start(&self, script_number: i32) -> anyhow::Result<()> {
         debug!("Starting KWin script {script_number}");
         self.dbus_connection
             .call_method(
@@ -98,6 +100,7 @@ impl KWinScript {
                 "run",
                 &(),
             )
+            .await
             .with_context(|| "Error on starting the script")?;
         Ok(())
     }
@@ -106,10 +109,16 @@ impl KWinScript {
 impl Drop for KWinScript {
     fn drop(&mut self) {
         if self.is_loaded {
-            debug!("Unloading KWin script");
-            if let Err(e) = self.unload() {
-                error!("Problem during stopping KWin script: {e}");
-            };
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(async {
+                    debug!("Unloading KWin script");
+                    if let Err(e) = self.unload().await {
+                        error!("Problem during stopping KWin script: {e}");
+                    };
+                });
         }
     }
 }
@@ -161,12 +170,12 @@ pub struct WindowWatcher {
 #[async_trait]
 impl Watcher for WindowWatcher {
     async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
-        let mut kwin_script = KWinScript::new(Connection::session()?);
-        if kwin_script.is_loaded()? {
+        let mut kwin_script = KWinScript::new(Connection::session().await?);
+        if kwin_script.is_loaded().await? {
             debug!("KWin script is already loaded, unloading");
-            kwin_script.unload()?;
+            kwin_script.unload().await?;
         }
-        kwin_script.load().unwrap();
+        kwin_script.load().await.unwrap();
 
         let active_window = Arc::new(Mutex::new(ActiveWindow {
             caption: String::new(),
@@ -179,21 +188,32 @@ impl Watcher for WindowWatcher {
 
         let (tx, rx) = channel();
         thread::spawn(move || {
-            let result = (|| {
+            async fn get_connection(
+                active_window_interface: ActiveWindowInterface,
+            ) -> zbus::Result<Connection> {
                 ConnectionBuilder::session()?
                     .name("com._2e3s.Awatcher")?
                     .serve_at("/com/_2e3s/Awatcher", active_window_interface)?
                     .build()
-            })();
-            match result {
-                Ok(connection) => {
-                    tx.send(None).unwrap();
-                    loop {
-                        connection.monitor_activity().wait();
-                    }
-                }
-                Err(e) => tx.send(Some(e)),
+                    .await
             }
+
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(async move {
+                    match get_connection(active_window_interface).await {
+                        Ok(connection) => {
+                            tx.send(None).unwrap();
+                            loop {
+                                connection.monitor_activity().wait();
+                            }
+                        }
+                        Err(e) => tx.send(Some(e)),
+                    }
+                })
+                .unwrap();
         });
         if let Some(error) = rx.recv().unwrap() {
             panic!("Failed to run a DBus interface: {error}");

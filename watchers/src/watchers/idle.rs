@@ -1,9 +1,11 @@
 use crate::report_client::ReportClient;
+use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use std::sync::Arc;
 
+#[async_trait]
 pub trait SinceLastInput {
-    fn seconds_since_input(&mut self) -> anyhow::Result<u32>;
+    async fn seconds_since_input(&mut self) -> anyhow::Result<u32>;
 }
 
 pub async fn ping_since_last_input(
@@ -16,7 +18,7 @@ pub async fn ping_since_last_input(
     let duration_1ms: Duration = Duration::milliseconds(1);
     let duration_zero: Duration = Duration::zero();
 
-    let seconds_since_input = watcher.seconds_since_input()?;
+    let seconds_since_input = watcher.seconds_since_input().await?;
     let now = Utc::now();
     let time_since_input = Duration::seconds(i64::from(seconds_since_input));
     let last_input = now - time_since_input;

@@ -3,15 +3,16 @@ use crate::report_client::ReportClient;
 use anyhow::Context;
 use async_trait::async_trait;
 use std::sync::Arc;
-use zbus::blocking::Connection;
+use zbus::Connection;
 
 pub struct IdleWatcher {
     dbus_connection: Connection,
     is_idle: bool,
 }
 
+#[async_trait]
 impl idle::SinceLastInput for IdleWatcher {
-    fn seconds_since_input(&mut self) -> anyhow::Result<u32> {
+    async fn seconds_since_input(&mut self) -> anyhow::Result<u32> {
         let ms = self
             .dbus_connection
             .call_method(
@@ -20,7 +21,8 @@ impl idle::SinceLastInput for IdleWatcher {
                 Some("org.gnome.Mutter.IdleMonitor"),
                 "GetIdletime",
                 &(),
-            )?
+            )
+            .await?
             .body::<u64>()?;
         u32::try_from(ms / 1000).with_context(|| format!("Number {ms} is invalid"))
     }
@@ -30,10 +32,10 @@ impl idle::SinceLastInput for IdleWatcher {
 impl Watcher for IdleWatcher {
     async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut watcher = Self {
-            dbus_connection: Connection::session()?,
+            dbus_connection: Connection::session().await?,
             is_idle: false,
         };
-        idle::SinceLastInput::seconds_since_input(&mut watcher)?;
+        idle::SinceLastInput::seconds_since_input(&mut watcher).await?;
 
         Ok(watcher)
     }
