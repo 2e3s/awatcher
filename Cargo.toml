@@ -22,24 +22,24 @@ version = "0.2.0"
 
 [workspace.dependencies]
 anyhow = "1.0.71"
-log = { version = "0.4.18", features = ["std"] }
-tokio = { version = "1.28.2" }
+log = { version = "0.4.19", features = ["std"] }
+tokio = { version = "1.29.1" }
 
 [dependencies]
 watchers = { path = "./watchers", default-features = false }
 chrono = "0.4.26"
-toml = "0.7.4"
-clap = { version = "4.3.0", features = ["string"] }
+toml = "0.7.6"
+clap = { version = "4.3.11", features = ["string"] }
 fern = { version = "0.6.2", features = ["colored"] }
 log = { workspace = true }
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "signal"] }
 
-ksni = {version = "0.2.0", optional = true}
+ksni = {version = "0.2.1", optional = true}
 aw-server = { git = "https://github.com/2e3s/aw-server-rust", optional = true, rev = "81db4c8" }
 aw-datastore = { git = "https://github.com/2e3s/aw-server-rust", optional = true, rev = "81db4c8" }
 open = { version = "5.0.0", optional = true }
-rust-embed = { version = "6.6.1", features = ["interpolate-folder-path"], optional = true }
+rust-embed = { version = "6.8.1", features = ["interpolate-folder-path"], optional = true }
 
 [features]
 default = ["gnome", "kwin_window"]
