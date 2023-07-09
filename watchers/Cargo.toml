@@ -11,6 +11,7 @@ path = "src/lib.rs"
 
 [dev-dependencies]
 rstest = "0.17.0"
+tempfile = "3.5.0"
 
 [dependencies]
 aw-client-rust = { git = "https://github.com/2e3s/aw-server-rust", rev = "81db4c8" }

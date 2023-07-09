@@ -111,13 +111,9 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
 pub fn new_with_cli(matches: &ArgMatches) -> anyhow::Result<FileConfig> {
     let mut config_path = None;
     if matches.contains_id("config") {
-        let config_file = matches.get_one::<String>("config");
+        let config_file = matches.get_one::<PathBuf>("config");
         if let Some(path) = config_file {
-            if let Err(e) = std::fs::metadata(path) {
-                warn!("Invalid config filename, using the default config: {e}");
-            } else {
-                config_path = Some(Path::new(path).to_path_buf());
-            }
+            config_path = Some(Path::new(path).to_path_buf());
         }
     }
     let mut config = FileConfig::new(config_path)?;
