@@ -17,7 +17,7 @@ pub async fn run(port: u32) {
     let legacy_import = false;
     let server_state = aw_server::endpoints::ServerState {
         datastore: Mutex::new(aw_datastore::Datastore::new(db_path, legacy_import)),
-        asset_resolver: embed_asset_resolver!("$AW_WEBUI_DIST"),
+        asset_resolver: embed_asset_resolver!("$AW_WEBUI_DIST", None),
         device_id,
     };
     build_rocket(server_state, config).launch().await.unwrap();

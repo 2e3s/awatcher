@@ -40,8 +40,13 @@ pub fn setup_logger(verbosity: LevelFilter) -> Result<(), fern::InitError> {
 
 pub fn from_cli() -> anyhow::Result<RunnerConfig> {
     let matches = Command::new("Activity Watcher")
-        .version("0.0.1")
-        .about("A set of ActivityWatch desktop watchers")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about(
+            #[cfg(not(feature = "bundle"))]
+            "X11 and Wayland active window and idle watcher for ActivityWatch server",
+            #[cfg(feature = "bundle")]
+            "X11 and Wayland active window and idle watcher with a bundled ActivityWatch server",
+        )
         .args([
             arg!(-c --config <FILE> "Custom config file").value_parser(value_parser!(PathBuf)),
             arg!(--port <PORT> "Custom server port")
