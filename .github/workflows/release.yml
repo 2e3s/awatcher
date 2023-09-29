@@ -12,7 +12,7 @@ jobs:
     # 22.04 is the earliest version with OpenSSL 3
     runs-on: ubuntu-22.04
     env:
-      AW_WEBUI_DIR: ./aw-webui/dist
+      AW_WEBUI_DIR: ${{ github.workspace }}/aw-webui/dist
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
