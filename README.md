@@ -1,5 +1,5 @@
 # Awatcher 
-[![Build Status](https://github.com/2e3s/awatcher/workflows/check/badge.svg?branch=main)](https://github.com/2e3s/awatcher/actions?query=branch%3Amain)
+[![Check](https://github.com/2e3s/awatcher/actions/workflows/verify.yml/badge.svg)](https://github.com/2e3s/awatcher/actions/workflows/verify.yml)
 [![Dependency Status](https://deps.rs/repo/github/2e3s/awatcher/status.svg)](https://deps.rs/repo/github/2e3s/awatcher)
 
 Awatcher is a window activity and idle watcher with an optional tray and UI for statistics.
