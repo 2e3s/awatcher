@@ -329,7 +329,7 @@ name = "aw-client-rust"
 version = "0.1.0"
 source = "git+https://github.com/2e3s/aw-server-rust?rev=81db4c8#81db4c8f15b13f106bef960f3a4adf770fc71b50"
 dependencies = [
- "aw-models",
+ "aw-models 0.1.0 (git+https://github.com/2e3s/aw-server-rust?rev=81db4c8)",
  "chrono",
  "gethostname 0.4.3",
  "reqwest",
@@ -341,15 +341,27 @@ dependencies = [
 [[package]]
 name = "aw-datastore"
 version = "0.1.0"
-source = "git+https://github.com/2e3s/aw-server-rust?rev=81db4c8#81db4c8f15b13f106bef960f3a4adf770fc71b50"
+source = "git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d#448312d410980d4a92a0fb4d4bb3fa3494cf6c89"
 dependencies = [
  "appdirs",
- "aw-models",
+ "aw-models 0.1.0 (git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d)",
  "aw-transform",
  "chrono",
  "log",
  "mpsc_requests",
  "rusqlite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "aw-models"
+version = "0.1.0"
+source = "git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d#448312d410980d4a92a0fb4d4bb3fa3494cf6c89"
+dependencies = [
+ "chrono",
+ "log",
+ "schemars",
  "serde",
  "serde_json",
 ]
@@ -369,10 +381,10 @@ dependencies = [
 [[package]]
 name = "aw-query"
 version = "0.1.0"
-source = "git+https://github.com/2e3s/aw-server-rust?rev=81db4c8#81db4c8f15b13f106bef960f3a4adf770fc71b50"
+source = "git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d#448312d410980d4a92a0fb4d4bb3fa3494cf6c89"
 dependencies = [
  "aw-datastore",
- "aw-models",
+ "aw-models 0.1.0 (git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d)",
  "aw-transform",
  "chrono",
  "fancy-regex",
@@ -385,12 +397,12 @@ dependencies = [
 [[package]]
 name = "aw-server"
 version = "0.12.1"
-source = "git+https://github.com/2e3s/aw-server-rust?rev=81db4c8#81db4c8f15b13f106bef960f3a4adf770fc71b50"
+source = "git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d#448312d410980d4a92a0fb4d4bb3fa3494cf6c89"
 dependencies = [
  "android_logger",
  "appdirs",
  "aw-datastore",
- "aw-models",
+ "aw-models 0.1.0 (git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d)",
  "aw-query",
  "aw-transform",
  "chrono",
@@ -407,7 +419,7 @@ dependencies = [
  "openssl-sys",
  "rocket",
  "rocket_cors",
- "rust-embed",
+ "rust-embed 8.0.0",
  "serde",
  "serde_json",
  "toml",
@@ -417,9 +429,9 @@ dependencies = [
 [[package]]
 name = "aw-transform"
 version = "0.1.0"
-source = "git+https://github.com/2e3s/aw-server-rust?rev=81db4c8#81db4c8f15b13f106bef960f3a4adf770fc71b50"
+source = "git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d#448312d410980d4a92a0fb4d4bb3fa3494cf6c89"
 dependencies = [
- "aw-models",
+ "aw-models 0.1.0 (git+https://github.com/ActivityWatch/aw-server-rust?rev=448312d)",
  "chrono",
  "fancy-regex",
  "log",
@@ -442,7 +454,7 @@ dependencies = [
  "ksni",
  "log",
  "open",
- "rust-embed",
+ "rust-embed 6.8.1",
  "tokio",
  "toml",
  "watchers",
@@ -2715,8 +2727,9 @@ dependencies = [
 
 [[package]]
 name = "rocket_cors"
-version = "0.6.0-alpha1"
-source = "git+https://github.com/lawliet89/rocket_cors?rev=54fae07#54fae0701dffbe5df686465780218644ee3fae5f"
+version = "0.6.0-alpha2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b12771b47f52e34d5d0e0e444aeba382863e73263cb9e18847e7d5b74aa2cbd0"
 dependencies = [
  "http",
  "log",
@@ -2807,8 +2820,19 @@ version = "6.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a36224c3276f8c4ebc8c20f158eca7ca4359c8db89991c4925132aaaf6702661"
 dependencies = [
- "rust-embed-impl",
- "rust-embed-utils",
+ "rust-embed-impl 6.8.1",
+ "rust-embed-utils 7.8.1",
+ "walkdir",
+]
+
+[[package]]
+name = "rust-embed"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1e7d90385b59f0a6bf3d3b757f3ca4ece2048265d70db20a2016043d4509a40"
+dependencies = [
+ "rust-embed-impl 8.0.0",
+ "rust-embed-utils 8.0.0",
  "walkdir",
 ]
 
@@ -2820,7 +2844,21 @@ checksum = "49b94b81e5b2c284684141a2fb9e2a31be90638caf040bf9afbc5a0416afe1ac"
 dependencies = [
  "proc-macro2 1.0.63",
  "quote 1.0.29",
- "rust-embed-utils",
+ "rust-embed-utils 7.8.1",
+ "shellexpand",
+ "syn 2.0.24",
+ "walkdir",
+]
+
+[[package]]
+name = "rust-embed-impl"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c3d8c6fd84090ae348e63a84336b112b5c3918b3bf0493a581f7bd8ee623c29"
+dependencies = [
+ "proc-macro2 1.0.63",
+ "quote 1.0.29",
+ "rust-embed-utils 8.0.0",
  "shellexpand",
  "syn 2.0.24",
  "walkdir",
@@ -2831,6 +2869,16 @@ name = "rust-embed-utils"
 version = "7.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d38ff6bf570dc3bb7100fce9f7b60c33fa71d80e88da3f2580df4ff2bdded74"
+dependencies = [
+ "sha2",
+ "walkdir",
+]
+
+[[package]]
+name = "rust-embed-utils"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "873feff8cb7bf86fdf0a71bb21c95159f4e4a37dd7a4bd1855a940909b583ada"
 dependencies = [
  "sha2",
  "walkdir",

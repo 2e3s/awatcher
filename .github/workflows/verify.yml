@@ -20,7 +20,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     env:
-      AW_WEBUI_DIST: ./src/bundle
+      AW_WEBUI_DIR: ./src/bundle
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get install -y libdbus-1-dev
@@ -33,7 +33,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      AW_WEBUI_DIST: ./src/bundle
+      AW_WEBUI_DIR: ./src/bundle
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get install -y libdbus-1-dev

@@ -1,5 +1,6 @@
 # Awatcher 
-[![Build Status](https://github.com/2e3s/awatcher/workflows/check/badge.svg?branch=main)](https://github.com/2e3s/awatcher/actions?query=branch%3Amain) [![Dependency Status](https://deps.rs/repo/github/2e3s/awatcher/status.svg)](https://deps.rs/repo/github/2e3s/awatcher)
+[![Build Status](https://github.com/2e3s/awatcher/workflows/check/badge.svg?branch=main)](https://github.com/2e3s/awatcher/actions?query=branch%3Amain)
+[![Dependency Status](https://deps.rs/repo/github/2e3s/awatcher/status.svg)](https://deps.rs/repo/github/2e3s/awatcher)
 
 Awatcher is a window activity and idle watcher with an optional tray and UI for statistics.
 The goal is to compensate the fragmentation of desktop environments on Linux by supporting all reportable environments, 
@@ -9,50 +10,14 @@ The foundation is [ActivityWatch](https://github.com/ActivityWatch), which inclu
 The unbundled watcher is supposed to replace the original idle and active window watchers from the original distribution.
 The bundled executable can be used independently as it contains the server, UI and tray.
 
-The crate also provides a library with watchers which can send the data to the server.
-
-## Build
-
-### Prerequisites
-
-Names of packages are from Ubuntu, other distributions may have different names.
-
-- Rust stable or nightly (for the bundle) toolchain
-- pkg-config
-- libssl-dev
-- libdbus-1-dev (for the bundled version)
-- build-essential
-
-### Compile
-
-- `cargo build --release` in the root of the repository.
-- The target file will be located at `target/release/awatcher`.
-
-Add `--no-default-features` to the build command if you want to opt out of the Gnome and KDE support,
-add `--features=?` ("gnome" or "kwin_window") on top of that if you want to enable just one.
-
-To track your activities in browsers install the plugin for your browser from 
-[here](https://github.com/ActivityWatch/aw-watcher-web) (Firefox, Chrome etc).
-
-#### Compile with bundle
-
-The executable can be bundled with a tray icon, ActivityWatch server and, optionally, Web UI (if steps 1-2 are done):
-
-1. Clone and follow the instruction in [ActivityWatch/aw-webui@839366e](https://github.com/ActivityWatch/aw-webui/commit/839366e66f859faadd7f9128de3bea14b25ce4ae)
-to build the "dist" folder, 
-1. Build the executable with `AW_WEBUI_DIST=path/to/dist` and `--features=bundle`.
-
-This should be compiled on nightly. The complete bundled version is also built and released.
-
-Gnome needs [the extension](https://extensions.gnome.org/extension/615/appindicator-support/) to support StatusNotifierItem specification.
-
-The tray can be disabled with `--no-tray` option in the bundled version.
+The binaries for the bundle, bundled DEB and ActivityWatch watchers replacement can be downloaded from
+[releases](https://github.com/2e3s/awatcher/releases).
 
 ## Supported environments
 
 ActivityWatch server should be run before `awatcher` is running.
 At this moment only Linux is supported. The watcher type is selected automatically
-by availability of necessary interfaces in the given environment.
+as soon as the environment has the necessary interfaces.
 
 | Environment     | Active window        | Idle                |
 | --------------- | -------------------- | ------------------- |
@@ -108,7 +73,7 @@ Copy the section as many times as needed for every given filter.
 
 The first matching filter stops the replacement.
 There should be at least 1 match field, and at least 1 replace field for a valid filter.
-Matches are case sensitive regular expressions between implici ^ and $:
+Matches are case sensitive regular expressions between implicit ^ and $:
 - `.` matches 1 any character
 - `.*` matches any number of any characters
 - `.+` matches 1 or more any characters.
@@ -137,3 +102,40 @@ to see what application names and titles are reported to the server.
 ```
 $ awatcher -vvv --no-server
 ```
+
+## Build
+
+### Prerequisites
+
+Names of packages are from Ubuntu, other distributions may have different names.
+
+- Rust stable or nightly (for the bundle) toolchain
+- pkg-config
+- libssl-dev
+- libdbus-1-dev (for the bundled version)
+- build-essential
+
+### Compile
+
+- `cargo build --release` in the root of the repository.
+- The target file will be located at `target/release/awatcher`.
+
+Add `--no-default-features` to the build command if you want to opt out of the Gnome and KDE support,
+add `--features=?` ("gnome" or "kwin_window") on top of that if you want to enable just one.
+
+To track your activities in browsers install the plugin for your browser from 
+[here](https://github.com/ActivityWatch/aw-watcher-web) (Firefox, Chrome etc).
+
+#### Compile with bundle
+
+The executable can be bundled with a tray icon, ActivityWatch server and, optionally, Web UI (if steps 1-2 are done):
+
+1. Clone and follow the instruction in [ActivityWatch/aw-webui@839366e](https://github.com/ActivityWatch/aw-webui/commit/839366e66f859faadd7f9128de3bea14b25ce4ae)
+to build the "dist" folder, 
+1. Build the executable with `AW_WEBUI_DIR=/absolute/path/to/dist` and `--features=bundle`.
+
+This should be compiled on nightly. The complete bundled version is also built and released.
+
+Gnome needs [the extension](https://extensions.gnome.org/extension/615/appindicator-support/) to support StatusNotifierItem specification.
+
+The tray can be disabled with `--no-tray` option in the bundled version.

@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use aw_server::endpoints::{build_rocket, embed_asset_resolver};
+use aw_server::endpoints::{build_rocket, AssetResolver, ServerState};
 use std::sync::Mutex;
 
 pub async fn run(port: u32) {
@@ -15,9 +15,9 @@ pub async fn run(port: u32) {
     config.port = u16::try_from(port).unwrap();
 
     let legacy_import = false;
-    let server_state = aw_server::endpoints::ServerState {
+    let server_state = ServerState {
         datastore: Mutex::new(aw_datastore::Datastore::new(db_path, legacy_import)),
-        asset_resolver: embed_asset_resolver!("$AW_WEBUI_DIST", None),
+        asset_resolver: AssetResolver::new(None),
         device_id,
     };
     build_rocket(server_state, config).launch().await.unwrap();
