@@ -77,8 +77,8 @@ async fn main() -> anyhow::Result<()> {
             _ = bundle_handle => Ok(()),
             _ = tokio::spawn(idle_future) => Ok(()),
             _ = tokio::spawn(active_window_future) => Ok(()),
-            _ = sigterm => Ok(()),
-            _ = sigint => Ok(()),
+            () = sigterm => Ok(()),
+            () = sigint => Ok(()),
             _ = shutdown_recv.recv() => Ok(()),
         )
     }

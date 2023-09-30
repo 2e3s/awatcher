@@ -4,7 +4,7 @@ use std::sync::Mutex;
 
 pub async fn run(port: u32) {
     let db_path = aw_server::dirs::db_path(false)
-        .map_err(|_| anyhow!("DB path is not found"))
+        .map_err(|()| anyhow!("DB path is not found"))
         .unwrap()
         .to_str()
         .unwrap()
