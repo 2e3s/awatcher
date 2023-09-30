@@ -21,15 +21,15 @@ members = ["watchers"]
 version = "0.2.0"
 
 [workspace.dependencies]
-anyhow = "1.0.71"
-log = { version = "0.4.19", features = ["std"] }
-tokio = { version = "1.29.1" }
+anyhow = "1.0.75"
+log = { version = "0.4.20", features = ["std"] }
+tokio = { version = "1.32.0" }
 
 [dependencies]
 watchers = { path = "./watchers", default-features = false }
-chrono = "0.4.26"
-toml = "0.7.6"
-clap = { version = "4.3.11", features = ["string"] }
+chrono = "0.4.31"
+toml = "0.8.1"
+clap = { version = "4.4.6", features = ["string"] }
 fern = { version = "0.6.2", features = ["colored"] }
 log = { workspace = true }
 anyhow = { workspace = true }
@@ -39,13 +39,12 @@ ksni = {version = "0.2.1", optional = true}
 aw-server = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "448312d" }
 aw-datastore = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "448312d" }
 open = { version = "5.0.0", optional = true }
-rust-embed = { version = "6.8.1", features = ["interpolate-folder-path"], optional = true }
 
 [features]
 default = ["gnome", "kwin_window"]
 gnome = ["watchers/gnome"]
 kwin_window = ["watchers/kwin_window"]
-bundle = ["ksni", "aw-server", "aw-datastore", "open", "rust-embed"]
+bundle = ["ksni", "aw-server", "aw-datastore", "open"]
 
 [package.metadata.deb]
 features = ["bundle"]

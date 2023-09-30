@@ -66,8 +66,8 @@ async fn main() -> anyhow::Result<()> {
         tokio::select!(
             _ = tokio::spawn(idle_future) => Ok(()),
             _ = tokio::spawn(active_window_future) => Ok(()),
-            _ = sigterm => Ok(()),
-            _ = sigint => Ok(()),
+            () = sigterm => Ok(()),
+            () = sigint => Ok(()),
         )
     }
 
