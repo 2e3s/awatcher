@@ -96,7 +96,7 @@ impl ReportClient {
             return Ok(());
         }
 
-        let interval_margin = self.config.poll_time_idle.as_secs_f64() + 1.0;
+        let interval_margin = self.config.poll_time_window.as_secs_f64() + 1.0;
         self.client
             .heartbeat(&self.active_window_bucket_name, &event, interval_margin)
             .await
