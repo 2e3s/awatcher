@@ -87,7 +87,8 @@ impl ReportClient {
         let event = AwEvent {
             id: None,
             timestamp: Utc::now(),
-            duration: Duration::zero(),
+            // Added one nano second to ensure the event is not filtered out by https://github.com/ActivityWatch/aw-webui/blob/cf74080d12ffd53d37c83e3e0eddaf952fe14a62/src/visualizations/VisTimeline.vue#L108
+            duration: Duration::from_std(self.config.poll_time_window).unwrap() + Duration::nanoseconds(1),
             data,
         };
 
