@@ -78,7 +78,7 @@ Matches are case sensitive regular expressions between implicit ^ and $:
 - `.*` matches any number of any characters
 - `.+` matches 1 or more any characters.
 - `word` is an exact match.
-- Use escapes `\` to match special characters, e.g. `org\.kde\.Dolpin`
+- Use escapes `\` to match special characters, e.g. `org\.kde\.Dolphin`
 
 #### Captures
 
