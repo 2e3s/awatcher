@@ -15,7 +15,9 @@ jobs:
       AW_WEBUI_DIR: ${{ github.workspace }}/aw-webui/dist
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2023-11-01
       - name: Install dependencies
         run: |
           sudo apt-get update
