@@ -7,7 +7,7 @@ use super::Watcher;
 use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
-use std::env::temp_dir;
+use std::env::{self, temp_dir};
 use std::path::Path;
 use std::sync::{mpsc::channel, Arc};
 use std::thread;
@@ -175,6 +175,12 @@ impl Watcher for WindowWatcher {
             debug!("KWin script is already loaded, unloading");
             kwin_script.unload().await?;
         }
+        if env::var("WAYLAND_DISPLAY").is_err()
+            && env::var_os("XDG_SESSION_TYPE").unwrap_or("".into()) == "x11"
+        {
+            return Err(anyhow!("X11 should be tried instead"));
+        }
+
         kwin_script.load().await.unwrap();
 
         let active_window = Arc::new(Mutex::new(ActiveWindow {
