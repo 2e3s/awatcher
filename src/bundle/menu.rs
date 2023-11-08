@@ -4,10 +4,29 @@ use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug)]
 pub struct Tray {
-    pub server_host: String,
-    pub server_port: u32,
-    pub config_file: PathBuf,
-    pub shutdown_sender: UnboundedSender<()>,
+    server_host: String,
+    server_port: u32,
+    config_file: PathBuf,
+    shutdown_sender: UnboundedSender<()>,
+    watchers: Vec<String>,
+}
+
+impl Tray {
+    pub fn new(
+        server_host: String,
+        server_port: u32,
+        config_file: PathBuf,
+        shutdown_sender: UnboundedSender<()>,
+        watchers: Vec<String>,
+    ) -> Self {
+        Self {
+            server_host,
+            server_port,
+            config_file,
+            shutdown_sender,
+            watchers,
+        }
+    }
 }
 
 impl ksni::Tray for Tray {
@@ -23,6 +42,35 @@ impl ksni::Tray for Tray {
         "Awatcher".into()
     }
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
+        let mut watchers_submenu: Vec<ksni::MenuItem<Self>> = vec![
+            ksni::menu::CheckmarkItem {
+                label: "Idle".into(),
+                enabled: false,
+                checked: true,
+                activate: Box::new(|_this: &mut Self| {}),
+                ..Default::default()
+            }
+            .into(),
+            ksni::menu::CheckmarkItem {
+                label: "Window".into(),
+                enabled: false,
+                checked: true,
+                ..Default::default()
+            }
+            .into(),
+        ];
+        for watcher in &self.watchers {
+            watchers_submenu.push(
+                ksni::menu::CheckmarkItem {
+                    label: watcher.clone(),
+                    enabled: false,
+                    checked: true,
+                    ..Default::default()
+                }
+                .into(),
+            );
+        }
+
         vec![
             ksni::menu::StandardItem {
                 label: "ActivityWatch".into(),
@@ -35,6 +83,12 @@ impl ksni::Tray for Tray {
                         open::that(&url).unwrap();
                     })
                 },
+                ..Default::default()
+            }
+            .into(),
+            ksni::menu::SubMenu {
+                label: "Watchers".into(),
+                submenu: watchers_submenu,
                 ..Default::default()
             }
             .into(),
