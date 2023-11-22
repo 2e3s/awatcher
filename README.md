@@ -1,4 +1,4 @@
-# Awatcher 
+# Awatcher
 [![Check](https://github.com/2e3s/awatcher/actions/workflows/verify.yml/badge.svg)](https://github.com/2e3s/awatcher/actions/workflows/verify.yml)
 [![Dependency Status](https://deps.rs/repo/github/2e3s/awatcher/status.svg)](https://deps.rs/repo/github/2e3s/awatcher)
 
@@ -12,6 +12,23 @@ The bundled executable can be used independently as it contains the server, UI a
 
 The binaries for the bundle, bundled DEB and ActivityWatch watchers replacement can be downloaded from
 [releases](https://github.com/2e3s/awatcher/releases).
+
+### Module for ActivityWatch
+
+- `awatcher.zip` has a single file `aw-awatcher`. Run `sudo unzip awatcher.zip -d /usr/local/bin` in the console to allow ActivityWatch to detect its presence.
+  Or specify for `-d` any other directory which is present in `$PATH` environment variable.
+  Ensure that the extracted file is `aw-awatcher` and not `awatcher`, rename it if necessary.
+- Remove `aw-watcher-window` and `aw-watcher-afk` from autostart at `aw-qt/aw-qt.toml` in [config directory](https://docs.activitywatch.net/en/latest/directories.html#config),
+  add `aw-awatcher`
+- Restart ActivityWatch. In the Modules submenu there should be a new checked module **aw-awatcher**.
+
+### Bundle with built-in ActivityWatch
+
+This is a single binary to run **awatcher** with the server without changing system and ActivityWatch configuration,
+when only tracking activity windows and idle state is needed.
+The bundle is **aw-server-rust** and **awatcher** as a single executable.
+The data storage is compatible with ActivityWatch and **aw-server-rust** (**aw-server** has a different storage),
+so this can later be run as a module for ActivityWatch.
 
 ## Supported environments
 

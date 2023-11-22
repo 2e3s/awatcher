@@ -65,7 +65,9 @@ jobs:
       - name: cargo build bare
         run: cargo build --release
 
-      - run: zip "awatcher.zip" awatcher
+      - run: mv awatcher aw-awatcher
+        working-directory: target/release
+      - run: zip "awatcher.zip" "aw-awatcher"
         working-directory: target/release
       - name: Upload awatcher to release
         uses: svenstaro/upload-release-action@v2
