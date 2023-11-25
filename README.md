@@ -24,11 +24,13 @@ The binaries for the bundle, bundled DEB and ActivityWatch watchers replacement 
 
 ### Bundle with built-in ActivityWatch
 
-This is a single binary to run **awatcher** with the server without changing system and ActivityWatch configuration,
-when only tracking activity windows and idle state is needed.
+This is a single binary to run **awatcher** with the server without changing system and ActivityWatch configuration.
 The bundle is **aw-server-rust** and **awatcher** as a single executable.
-The data storage is compatible with ActivityWatch and **aw-server-rust** (**aw-server** has a different storage),
-so this can later be run as a module for ActivityWatch.
+The data storage is compatible with ActivityWatch and **aw-server-rust** (**aw-server** has a different storage), so this can later be run as a module for ActivityWatch.
+
+External modules are run like in the original ActivityWatch distribution
+by looking at `$PATH` and running all binaries which start with `aw-`.
+They are controled from the tray, no additional configuration is necessary.
 
 ## Supported environments
 

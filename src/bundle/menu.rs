@@ -1,14 +1,17 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use tokio::sync::mpsc::UnboundedSender;
 
-#[derive(Debug)]
+use super::modules::Manager;
+
 pub struct Tray {
     server_host: String,
     server_port: u32,
     config_file: PathBuf,
     shutdown_sender: UnboundedSender<()>,
-    watchers: Vec<String>,
+    watchers_manager: Manager,
+    checks: HashMap<PathBuf, bool>,
 }
 
 impl Tray {
@@ -17,14 +20,21 @@ impl Tray {
         server_port: u32,
         config_file: PathBuf,
         shutdown_sender: UnboundedSender<()>,
-        watchers: Vec<String>,
+        watchers_manager: Manager,
     ) -> Self {
+        let checks = watchers_manager
+            .path_watchers
+            .iter()
+            .map(|watcher| (watcher.path().to_owned(), watcher.started()))
+            .collect();
+
         Self {
             server_host,
             server_port,
             config_file,
             shutdown_sender,
-            watchers,
+            watchers_manager,
+            checks,
         }
     }
 }
@@ -38,9 +48,14 @@ impl ksni::Tray for Tray {
         }]
     }
 
+    fn id(&self) -> String {
+        "awatcher-bundle".into()
+    }
+
     fn title(&self) -> String {
         "Awatcher".into()
     }
+
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         let mut watchers_submenu: Vec<ksni::MenuItem<Self>> = vec![
             ksni::menu::CheckmarkItem {
@@ -59,12 +74,23 @@ impl ksni::Tray for Tray {
             }
             .into(),
         ];
-        for watcher in &self.watchers {
+        for watcher in &self.watchers_manager.path_watchers {
+            let path = watcher.path().to_owned();
+
             watchers_submenu.push(
                 ksni::menu::CheckmarkItem {
-                    label: watcher.clone(),
-                    enabled: false,
-                    checked: true,
+                    label: watcher.name(),
+                    enabled: true,
+                    checked: watcher.started(),
+                    activate: Box::new(move |this: &mut Self| {
+                        let current_checked = *this.checks.get(&path).unwrap_or(&false);
+                        this.checks.insert(path.clone(), !current_checked);
+                        if current_checked {
+                            this.watchers_manager.stop_watcher(&path);
+                        } else {
+                            this.watchers_manager.start_watcher(&path);
+                        }
+                    }),
                     ..Default::default()
                 }
                 .into(),
@@ -76,13 +102,11 @@ impl ksni::Tray for Tray {
                 label: "ActivityWatch".into(),
                 // https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
                 icon_name: "document-properties".into(),
-                activate: {
-                    let url = format!("http://{}:{}", self.server_host, self.server_port);
+                activate: Box::new(move |this: &mut Self| {
+                    let url = format!("http://{}:{}", this.server_host, this.server_port);
 
-                    Box::new(move |_| {
-                        open::that(&url).unwrap();
-                    })
-                },
+                    open::that(url).unwrap();
+                }),
                 ..Default::default()
             }
             .into(),
@@ -108,13 +132,9 @@ impl ksni::Tray for Tray {
             ksni::menu::StandardItem {
                 label: "Exit".into(),
                 icon_name: "application-exit".into(),
-                activate: {
-                    let shutdown_sender = self.shutdown_sender.clone();
-
-                    Box::new(move |_| {
-                        shutdown_sender.send(()).unwrap();
-                    })
-                },
+                activate: Box::new(move |this: &mut Self| {
+                    this.shutdown_sender.send(()).unwrap();
+                }),
                 ..Default::default()
             }
             .into(),
