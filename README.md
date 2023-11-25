@@ -15,9 +15,8 @@ The binaries for the bundle, bundled DEB and ActivityWatch watchers replacement 
 
 ### Module for ActivityWatch
 
-- `awatcher.zip` has a single file `aw-awatcher`. Run `sudo unzip awatcher.zip -d /usr/local/bin` in the console to allow ActivityWatch to detect its presence.
-  Or specify for `-d` any other directory which is present in `$PATH` environment variable.
-  Ensure that the extracted file is `aw-awatcher` and not `awatcher`, rename it if necessary.
+- Run `sudo unzip aw-awatcher.zip -d /usr/local/bin` in the console to allow ActivityWatch to detect its presence.
+  - Or install the provided **aw-awatcher_\*.deb**.
 - Remove `aw-watcher-window` and `aw-watcher-afk` from autostart at `aw-qt/aw-qt.toml` in [config directory](https://docs.activitywatch.net/en/latest/directories.html#config),
   add `aw-awatcher`
 - Restart ActivityWatch. In the Modules submenu there should be a new checked module **aw-awatcher**.
@@ -29,7 +28,7 @@ The bundle is **aw-server-rust** and **awatcher** as a single executable.
 The data storage is compatible with ActivityWatch and **aw-server-rust** (**aw-server** has a different storage), so this can later be run as a module for ActivityWatch.
 
 External modules are run like in the original ActivityWatch distribution
-by looking at `$PATH` and running all binaries which start with `aw-`.
+by looking at `$PATH` and running all executables whose name starts with `aw-`.
 They are controled from the tray, no additional configuration is necessary.
 
 ## Supported environments
