@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct Watchers {
@@ -43,7 +43,7 @@ impl ExternalWatcher {
         }
         debug!("Starting an external watcher {}", self.name());
 
-        let command = Command::new(&self.path).stdout(Stdio::null()).spawn();
+        let command = Command::new(&self.path).spawn();
 
         match command {
             Ok(handle) => {
