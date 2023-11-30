@@ -7,6 +7,7 @@ mod idle;
 mod kwin_window;
 mod wl_bindings;
 mod wl_connection;
+mod wl_ext_idle_notify;
 mod wl_foreign_toplevel;
 mod wl_kwin_idle;
 mod x11_connection;
@@ -74,6 +75,7 @@ async fn filter_first_supported(
 ) -> Option<Box<dyn Watcher>> {
     match watcher_type {
         WatcherType::Idle => {
+            watch!(client, watcher_type, wl_ext_idle_notify::IdleWatcher);
             watch!(client, watcher_type, wl_kwin_idle::IdleWatcher);
             watch!(client, watcher_type, x11_screensaver_idle::IdleWatcher);
             #[cfg(feature = "gnome")]

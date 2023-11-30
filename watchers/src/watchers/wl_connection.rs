@@ -5,6 +5,9 @@ use wayland_client::{
     protocol::{wl_registry, wl_seat::WlSeat},
     Connection, Dispatch, EventQueue, Proxy, QueueHandle,
 };
+
+use wl_bindings::ext_idle::ext_idle_notification_v1::ExtIdleNotificationV1;
+use wl_bindings::ext_idle::ext_idle_notifier_v1::ExtIdleNotifierV1;
 use wl_bindings::idle::org_kde_kwin_idle::OrgKdeKwinIdle;
 use wl_bindings::idle::org_kde_kwin_idle_timeout::OrgKdeKwinIdleTimeout;
 use wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_manager_v1::ZwlrForeignToplevelManagerV1;
@@ -79,6 +82,33 @@ where
                 (),
             )
             .map_err(std::convert::Into::into)
+    }
+
+    pub fn get_ext_idle(&self) -> anyhow::Result<ExtIdleNotifierV1>
+    where
+        T: Dispatch<ExtIdleNotifierV1, ()>,
+    {
+        self.globals
+            .bind::<ExtIdleNotifierV1, T, ()>(
+                &self.queue_handle,
+                1..=ExtIdleNotifierV1::interface().version,
+                (),
+            )
+            .map_err(std::convert::Into::into)
+    }
+
+    pub fn get_ext_idle_notification(&self, timeout: u32) -> anyhow::Result<ExtIdleNotificationV1>
+    where
+        T: Dispatch<ExtIdleNotifierV1, ()>
+            + Dispatch<WlSeat, ()>
+            + Dispatch<ExtIdleNotificationV1, ()>,
+    {
+        let seat: WlSeat =
+            self.globals
+                .bind(&self.queue_handle, 1..=WlSeat::interface().version, ())?;
+
+        let idle = self.get_ext_idle()?;
+        Ok(idle.get_idle_notification(timeout, &seat, &self.queue_handle, ()))
     }
 
     pub fn get_kwin_idle_timeout(&self, timeout: u32) -> anyhow::Result<OrgKdeKwinIdleTimeout>

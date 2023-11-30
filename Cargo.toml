@@ -18,7 +18,7 @@ image = { version = "0.24.6" }
 members = ["watchers"]
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.4-alpha1"
 
 [workspace.dependencies]
 anyhow = "1.0.75"
