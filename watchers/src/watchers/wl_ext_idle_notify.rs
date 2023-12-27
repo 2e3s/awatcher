@@ -1,4 +1,3 @@
-use super::wl_bindings;
 use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
@@ -11,9 +10,9 @@ use wayland_client::{
     protocol::{wl_registry, wl_seat::WlSeat},
     Connection, Dispatch, Proxy, QueueHandle,
 };
-use wl_bindings::ext_idle::ext_idle_notification_v1::Event as ExtIdleNotificationV1Event;
-use wl_bindings::ext_idle::ext_idle_notification_v1::ExtIdleNotificationV1;
-use wl_bindings::ext_idle::ext_idle_notifier_v1::ExtIdleNotifierV1;
+use wayland_protocols::ext::idle_notify::v1::client::ext_idle_notification_v1::Event as IdleNotificationV1Event;
+use wayland_protocols::ext::idle_notify::v1::client::ext_idle_notification_v1::ExtIdleNotificationV1;
+use wayland_protocols::ext::idle_notify::v1::client::ext_idle_notifier_v1::ExtIdleNotifierV1;
 
 struct IdleState {
     idle_notification: ExtIdleNotificationV1,
@@ -115,9 +114,9 @@ impl Dispatch<ExtIdleNotificationV1, ()> for IdleState {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        if let ExtIdleNotificationV1Event::Idled = event {
+        if let IdleNotificationV1Event::Idled = event {
             state.idle();
-        } else if let ExtIdleNotificationV1Event::Resumed = event {
+        } else if let IdleNotificationV1Event::Resumed = event {
             state.resume();
         }
     }

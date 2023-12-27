@@ -40,12 +40,12 @@ as soon as the environment has the necessary interfaces.
 | Environment     | Active window        | Idle                |
 | --------------- | -------------------- | ------------------- |
 | X11             | :green_circle:       | :green_circle:      |
-| Wayland + Sway  | :green_circle: [^1]  | :green_circle: [^2] |
+| Sway, Hyprland  | :green_circle: [^1]  | :green_circle: [^2] |
 | Wayland + KDE   | :yellow_circle: [^3] | :green_circle:      |
 | Wayland + Gnome | :yellow_circle: [^4] | :green_circle:      |
 
 [^1]: A few other DEs besides Sway may implement [wlr foreign toplevel protocol](https://wayland.app/protocols/wlr-foreign-toplevel-management-unstable-v1),
-[^2]: It implements [KWin idle protocol](https://wayland.app/protocols/kde-idle).
+[^2]: [KWin idle](https://wayland.app/protocols/kde-idle) and [Idle notify](https://wayland.app/protocols/ext-idle-notify-v1) protocols are supported.
 [^3]: KWin doesn't implement any toplevel protocol yet, KWin script is utilized instead (builtin, no actions required).
       KDE partially supports XWayland, but inconsistently, hence X11 is not utilized for it.
 [^4]: Gnome doesn't implement any toplevel protocol yet, so [this extension](https://extensions.gnome.org/extension/5592/focused-window-d-bus/) should be installed.

@@ -447,7 +447,7 @@ dependencies = [
 
 [[package]]
 name = "awatcher"
-version = "0.2.4-alpha1"
+version = "0.2.4"
 dependencies = [
  "anyhow",
  "aw-datastore",
@@ -3821,7 +3821,7 @@ checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
 
 [[package]]
 name = "watchers"
-version = "0.2.4-alpha1"
+version = "0.2.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3838,9 +3838,10 @@ dependencies = [
  "tempfile",
  "tokio",
  "toml 0.8.1",
- "wayland-backend",
  "wayland-client",
- "wayland-scanner",
+ "wayland-protocols",
+ "wayland-protocols-plasma",
+ "wayland-protocols-wlr",
  "x11rb",
  "zbus",
 ]
@@ -3868,6 +3869,44 @@ dependencies = [
  "bitflags 2.4.0",
  "nix",
  "wayland-backend",
+ "wayland-scanner",
+]
+
+[[package]]
+name = "wayland-protocols"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e253d7107ba913923dc253967f35e8561a3c65f914543e46843c88ddd729e21c"
+dependencies = [
+ "bitflags 2.4.0",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-scanner",
+]
+
+[[package]]
+name = "wayland-protocols-plasma"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23803551115ff9ea9bce586860c5c5a971e360825a0309264102a9495a5ff479"
+dependencies = [
+ "bitflags 2.4.0",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
+ "wayland-scanner",
+]
+
+[[package]]
+name = "wayland-protocols-wlr"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad1f61b76b6c2d8742e10f9ba5c3737f6530b4c243132c2a2ccc8aa96fe25cd6"
+dependencies = [
+ "bitflags 2.4.0",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
  "wayland-scanner",
 ]
 

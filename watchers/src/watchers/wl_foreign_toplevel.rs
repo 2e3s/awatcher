@@ -1,9 +1,3 @@
-use super::wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_handle_v1::{
-    Event as HandleEvent, State as HandleState, ZwlrForeignToplevelHandleV1,
-};
-use super::wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_manager_v1::{
-    Event as ManagerEvent, ZwlrForeignToplevelManagerV1, EVT_TOPLEVEL_OPCODE,
-};
 use super::wl_connection::WlEventConnection;
 use super::{wl_connection::subscribe_state, Watcher};
 use crate::report_client::ReportClient;
@@ -14,6 +8,12 @@ use std::sync::Arc;
 use wayland_client::{
     event_created_child, globals::GlobalListContents, protocol::wl_registry, Connection, Dispatch,
     Proxy, QueueHandle,
+};
+use wayland_protocols_wlr::foreign_toplevel::v1::client::zwlr_foreign_toplevel_handle_v1::{
+    Event as HandleEvent, State as HandleState, ZwlrForeignToplevelHandleV1,
+};
+use wayland_protocols_wlr::foreign_toplevel::v1::client::zwlr_foreign_toplevel_manager_v1::{
+    Event as ManagerEvent, ZwlrForeignToplevelManagerV1, EVT_TOPLEVEL_OPCODE,
 };
 
 struct WindowData {
@@ -58,6 +58,7 @@ impl Dispatch<ZwlrForeignToplevelManagerV1, ()> for ToplevelState {
             ManagerEvent::Finished => {
                 error!("Toplevel manager is finished, the application may crash");
             }
+            _ => (),
         };
     }
 

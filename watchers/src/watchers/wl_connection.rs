@@ -1,4 +1,3 @@
-use super::wl_bindings;
 use anyhow::Context;
 use wayland_client::{
     globals::{registry_queue_init, GlobalList, GlobalListContents},
@@ -6,11 +5,13 @@ use wayland_client::{
     Connection, Dispatch, EventQueue, Proxy, QueueHandle,
 };
 
-use wl_bindings::ext_idle::ext_idle_notification_v1::ExtIdleNotificationV1;
-use wl_bindings::ext_idle::ext_idle_notifier_v1::ExtIdleNotifierV1;
-use wl_bindings::idle::org_kde_kwin_idle::OrgKdeKwinIdle;
-use wl_bindings::idle::org_kde_kwin_idle_timeout::OrgKdeKwinIdleTimeout;
-use wl_bindings::wlr_foreign_toplevel::zwlr_foreign_toplevel_manager_v1::ZwlrForeignToplevelManagerV1;
+use wayland_protocols::ext::idle_notify::v1::client::{
+    ext_idle_notification_v1::ExtIdleNotificationV1, ext_idle_notifier_v1::ExtIdleNotifierV1,
+};
+use wayland_protocols_plasma::idle::client::{
+    org_kde_kwin_idle::OrgKdeKwinIdle, org_kde_kwin_idle_timeout::OrgKdeKwinIdleTimeout,
+};
+use wayland_protocols_wlr::foreign_toplevel::v1::client::zwlr_foreign_toplevel_manager_v1::ZwlrForeignToplevelManagerV1;
 
 macro_rules! subscribe_state {
     ($struct_name:ty, $data_name:ty, $state:ty) => {

@@ -1,4 +1,3 @@
-use super::wl_bindings;
 use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
@@ -11,8 +10,8 @@ use wayland_client::{
     protocol::{wl_registry, wl_seat::WlSeat},
     Connection, Dispatch, Proxy, QueueHandle,
 };
-use wl_bindings::idle::org_kde_kwin_idle::OrgKdeKwinIdle;
-use wl_bindings::idle::org_kde_kwin_idle_timeout::{
+use wayland_protocols_plasma::idle::client::org_kde_kwin_idle::OrgKdeKwinIdle;
+use wayland_protocols_plasma::idle::client::org_kde_kwin_idle_timeout::{
     Event as OrgKdeKwinIdleTimeoutEvent, OrgKdeKwinIdleTimeout,
 };
 

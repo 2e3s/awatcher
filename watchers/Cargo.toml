@@ -16,8 +16,9 @@ tempfile = "3.8.0"
 [dependencies]
 aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust", rev = "448312d" }
 wayland-client = "0.31.1"
-wayland-scanner = "0.31.0"
-wayland-backend = "0.3.2"
+wayland-protocols = { version = "0.31.0", features = ["staging", "client" ]}
+wayland-protocols-plasma = { version = "0.2.0", features = ["client"] }
+wayland-protocols-wlr = { version = "0.2.0", features = ["client"] }
 x11rb = { version = "0.12.0", features = ["screensaver"] }
 zbus = {version = "3.14.1", optional = true}
 chrono = "0.4.31"

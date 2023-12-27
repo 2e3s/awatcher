@@ -5,7 +5,6 @@ mod gnome_window;
 mod idle;
 #[cfg(feature = "kwin_window")]
 mod kwin_window;
-mod wl_bindings;
 mod wl_connection;
 mod wl_ext_idle_notify;
 mod wl_foreign_toplevel;
