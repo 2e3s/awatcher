@@ -1,6 +1,8 @@
 #[cfg(feature = "gnome")]
 mod gnome_idle;
 #[cfg(feature = "gnome")]
+mod gnome_wayland;
+#[cfg(feature = "gnome")]
 mod gnome_window;
 mod idle;
 #[cfg(feature = "kwin_window")]

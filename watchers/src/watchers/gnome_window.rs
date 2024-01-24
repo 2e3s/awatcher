@@ -5,7 +5,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use zbus::Connection;
 
-use super::Watcher;
+use super::{gnome_wayland::load_watcher, gnome_wayland::GnomeWatcher, Watcher};
 
 pub struct WindowWatcher {
     dbus_connection: Connection,
@@ -38,7 +38,7 @@ impl WindowWatcher {
                     .body::<String>()
                     .with_context(|| "DBus interface cannot be parsed as string")?;
                 serde_json::from_str(&json).with_context(|| {
-                    "DBus interface org.gnome.shell.extensions.FocusedWindow returned wrong JSON"
+                    format!("DBus interface org.gnome.shell.extensions.FocusedWindow returned wrong JSON: {json}")
                 })
             }
             Err(e) => {
@@ -79,16 +79,23 @@ impl WindowWatcher {
     }
 }
 
-#[async_trait]
-impl Watcher for WindowWatcher {
-    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+impl GnomeWatcher for WindowWatcher {
+    async fn load() -> anyhow::Result<Self> {
         let watcher = Self {
             dbus_connection: Connection::session().await?,
             last_app_id: String::new(),
             last_title: String::new(),
         };
+        watcher.get_window_data().await?;
 
         Ok(watcher)
+    }
+}
+
+#[async_trait]
+impl Watcher for WindowWatcher {
+    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+        load_watcher().await
     }
 
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
