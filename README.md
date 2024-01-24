@@ -121,6 +121,11 @@ to see what application names and titles are reported to the server.
 $ awatcher -vvv --no-server
 ```
 
+### Autostart
+
+Using `~/.config/autostart` is preferable, which is used by "Autostart" in KDE settings or Gnome Tweaks.
+Systemd may require to sleep for a few seconds (`ExecStartPre=/bin/sleep 5`) in order to wait for the environment.
+
 ## Build
 
 ### Prerequisites
