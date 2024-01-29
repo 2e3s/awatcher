@@ -2,7 +2,6 @@ use super::wl_connection::WlEventConnection;
 use super::{wl_connection::subscribe_state, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
-use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use wayland_client::{
@@ -138,11 +137,8 @@ impl WindowWatcher {
             .await
             .with_context(|| "Failed to send heartbeat for active window")
     }
-}
 
-#[async_trait]
-impl Watcher for WindowWatcher {
-    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    pub async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut connection: WlEventConnection<ToplevelState> = WlEventConnection::connect()?;
         connection.get_foreign_toplevel_manager()?;
 
@@ -159,6 +155,9 @@ impl Watcher for WindowWatcher {
         })
     }
 
+}
+
+impl Watcher for WindowWatcher {
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
             .event_queue

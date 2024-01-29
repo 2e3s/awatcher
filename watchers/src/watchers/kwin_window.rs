@@ -6,7 +6,6 @@
 use super::Watcher;
 use crate::report_client::ReportClient;
 use anyhow::{anyhow, Context};
-use async_trait::async_trait;
 use std::env::{self, temp_dir};
 use std::path::Path;
 use std::sync::{mpsc::channel, Arc};
@@ -167,9 +166,8 @@ pub struct WindowWatcher {
     _kwin_script: KWinScript,
 }
 
-#[async_trait]
-impl Watcher for WindowWatcher {
-    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+impl WindowWatcher {
+    pub async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut kwin_script = KWinScript::new(Connection::session().await?);
         if kwin_script.is_loaded().await? {
             debug!("KWin script is already loaded, unloading");
@@ -230,7 +228,9 @@ impl Watcher for WindowWatcher {
             _kwin_script: kwin_script,
         })
     }
+}
 
+impl Watcher for WindowWatcher {
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         send_active_window(client, &self.active_window).await
     }

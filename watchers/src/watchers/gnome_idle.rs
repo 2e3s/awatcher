@@ -1,8 +1,7 @@
 use super::{gnome_wayland::load_watcher, gnome_wayland::GnomeWatcher, idle, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
-use async_trait::async_trait;
-use std::sync::Arc;
+use std::{sync::Arc, pin::Pin, future::Future};
 use zbus::Connection;
 
 pub struct IdleWatcher {
@@ -10,7 +9,6 @@ pub struct IdleWatcher {
     is_idle: bool,
 }
 
-#[async_trait]
 impl idle::SinceLastInput for IdleWatcher {
     async fn seconds_since_input(&mut self) -> anyhow::Result<u32> {
         let ms = self
@@ -40,15 +38,21 @@ impl GnomeWatcher for IdleWatcher {
     }
 }
 
-#[async_trait]
-impl Watcher for IdleWatcher {
-    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+impl IdleWatcher {
+    pub async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         load_watcher().await
     }
+}
 
-    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        self.is_idle = idle::ping_since_last_input(self, self.is_idle, client).await?;
-
-        Ok(())
+impl Watcher for IdleWatcher {
+    fn run_iteration<'a>(
+    &'a mut self,
+    client: &'a Arc<ReportClient>,
+    ) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send + 'a>> {
+        Box::pin(async move {
+            self.is_idle = idle::ping_since_last_input(self, self.is_idle, client).await?;
+    
+            Ok(())
+        })    
     }
 }

@@ -1,6 +1,5 @@
 use crate::report_client::ReportClient;
 use anyhow::Context;
-use async_trait::async_trait;
 use serde::Deserialize;
 use std::sync::Arc;
 use zbus::Connection;
@@ -20,6 +19,10 @@ struct WindowData {
 }
 
 impl WindowWatcher {
+    pub async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+        load_watcher().await
+    }
+
     async fn get_window_data(&self) -> anyhow::Result<WindowData> {
         let call_response = self
             .dbus_connection
@@ -92,12 +95,7 @@ impl GnomeWatcher for WindowWatcher {
     }
 }
 
-#[async_trait]
 impl Watcher for WindowWatcher {
-    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
-        load_watcher().await
-    }
-
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.send_active_window(client).await
     }

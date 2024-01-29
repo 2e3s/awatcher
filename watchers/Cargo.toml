@@ -31,7 +31,6 @@ regex = "1.10.2"
 gethostname = "0.4.3"
 log = { workspace = true }
 anyhow = { workspace = true }
-async-trait = "0.1.75"
 tokio = { workspace = true, features = ["time", "sync"] }
 
 [features]

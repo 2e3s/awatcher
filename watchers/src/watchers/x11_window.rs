@@ -1,7 +1,6 @@
 use super::{x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
-use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct WindowWatcher {
@@ -30,9 +29,8 @@ impl WindowWatcher {
     }
 }
 
-#[async_trait]
-impl Watcher for WindowWatcher {
-    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+impl WindowWatcher {
+    pub async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut client = X11Client::new()?;
         client.active_window_data()?;
 
@@ -43,6 +41,9 @@ impl Watcher for WindowWatcher {
         })
     }
 
+}
+
+impl Watcher for WindowWatcher {
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.send_active_window(client).await
     }

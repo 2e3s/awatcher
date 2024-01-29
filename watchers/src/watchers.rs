@@ -16,8 +16,7 @@ mod x11_screensaver_idle;
 mod x11_window;
 
 use crate::{config::Config, report_client::ReportClient};
-use async_trait::async_trait;
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, sync::Arc, pin::Pin, future::Future};
 use tokio::time;
 
 pub enum WatcherType {
@@ -43,13 +42,11 @@ impl Display for WatcherType {
     }
 }
 
-#[async_trait]
 pub trait Watcher: Send {
-    async fn new(client: &Arc<ReportClient>) -> anyhow::Result<Self>
-    where
-        Self: Sized;
-
-    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()>;
+    fn run_iteration<'a>(
+        &'a mut self,
+        client: &'a Arc<ReportClient>,
+    ) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send + 'a>>;
 }
 
 macro_rules! watch {

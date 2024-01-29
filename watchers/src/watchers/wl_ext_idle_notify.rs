@@ -2,7 +2,6 @@ use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
 use anyhow::anyhow;
-use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use std::sync::Arc;
 use wayland_client::{
@@ -127,9 +126,8 @@ pub struct IdleWatcher {
     idle_state: IdleState,
 }
 
-#[async_trait]
-impl Watcher for IdleWatcher {
-    async fn new(client: &Arc<ReportClient>) -> anyhow::Result<Self> {
+impl IdleWatcher {
+    pub async fn new(client: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut connection: WlEventConnection<IdleState> = WlEventConnection::connect()?;
         connection.get_ext_idle()?;
 
@@ -146,7 +144,9 @@ impl Watcher for IdleWatcher {
             idle_state,
         })
     }
+}
 
+impl Watcher for IdleWatcher {
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
             .event_queue

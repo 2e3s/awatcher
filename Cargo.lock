@@ -3814,7 +3814,6 @@ name = "watchers"
 version = "0.2.4"
 dependencies = [
  "anyhow",
- "async-trait",
  "aw-client-rust",
  "chrono",
  "dirs 5.0.1",

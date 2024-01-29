@@ -1,9 +1,7 @@
 use crate::report_client::ReportClient;
-use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use std::sync::Arc;
 
-#[async_trait]
 pub trait SinceLastInput {
     async fn seconds_since_input(&mut self) -> anyhow::Result<u32>;
 }
