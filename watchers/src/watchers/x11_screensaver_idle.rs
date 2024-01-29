@@ -9,7 +9,6 @@ pub struct IdleWatcher {
     is_idle: bool,
 }
 
-#[async_trait]
 impl idle::SinceLastInput for IdleWatcher {
     async fn seconds_since_input(&mut self) -> anyhow::Result<u32> {
         self.client.seconds_since_last_input()
