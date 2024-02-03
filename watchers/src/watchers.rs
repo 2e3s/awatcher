@@ -52,21 +52,24 @@ pub trait Watcher: Send {
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()>;
 }
 
+async fn create_watcher<T: Watcher>(client: &Arc<ReportClient>, name: &str) -> Option<T> {
+    match T::new(client).await {
+        Ok(watcher) => {
+            info!("Selected watcher: {name}");
+            Some(watcher)
+        }
+        Err(e) => {
+            debug!("Watcher \"{name}\" cannot run: {e}");
+            None
+        }
+    }
+}
+
 macro_rules! watch {
-    ($client:expr, $watcher_type:expr, $watcher_struct:ty) => {
-        match <$watcher_struct>::new($client).await {
-            Ok(watcher) => {
-                info!(
-                    "Selected {} as {} watcher",
-                    stringify!($watcher_struct),
-                    $watcher_type
-                );
-                return Some(Box::new(watcher));
-            }
-            Err(e) => {
-                debug!("{} cannot run: {e}", stringify!($watcher_struct));
-            }
-        };
+    ($watcher:expr) => {
+        if let Some(watcher) = $watcher.await {
+            return Some(Box::new(watcher));
+        }
     };
 }
 
@@ -76,20 +79,44 @@ async fn filter_first_supported(
 ) -> Option<Box<dyn Watcher>> {
     match watcher_type {
         WatcherType::Idle => {
-            watch!(client, watcher_type, wl_ext_idle_notify::IdleWatcher);
-            watch!(client, watcher_type, wl_kwin_idle::IdleWatcher);
-            watch!(client, watcher_type, x11_screensaver_idle::IdleWatcher);
+            watch!(create_watcher::<wl_ext_idle_notify::IdleWatcher>(
+                client,
+                "Wayland idle (ext_idle_notification_v1)"
+            ));
+            watch!(create_watcher::<wl_kwin_idle::IdleWatcher>(
+                client,
+                "Wayland idle (KWin)"
+            ));
+            watch!(create_watcher::<x11_screensaver_idle::IdleWatcher>(
+                client,
+                "X11 idle (screensaver)"
+            ));
             #[cfg(feature = "gnome")]
-            watch!(client, watcher_type, gnome_idle::IdleWatcher);
+            watch!(create_watcher::<gnome_idle::IdleWatcher>(
+                client,
+                "Gnome idle (Mutter/IdleMonitor)"
+            ));
         }
         WatcherType::ActiveWindow => {
-            watch!(client, watcher_type, wl_foreign_toplevel::WindowWatcher);
+            watch!(create_watcher::<wl_foreign_toplevel::WindowWatcher>(
+                client,
+                "Wayland window (wlr-foreign-toplevel-management-unstable-v1)"
+            ));
             // XWayland gives _NET_WM_NAME on some windows in KDE, but not on others
             #[cfg(feature = "kwin_window")]
-            watch!(client, watcher_type, kwin_window::WindowWatcher);
-            watch!(client, watcher_type, x11_window::WindowWatcher);
+            watch!(create_watcher::<kwin_window::WindowWatcher>(
+                client,
+                "KWin window (script)"
+            ));
+            watch!(create_watcher::<x11_window::WindowWatcher>(
+                client,
+                "X11 window"
+            ));
             #[cfg(feature = "gnome")]
-            watch!(client, watcher_type, gnome_window::WindowWatcher);
+            watch!(create_watcher::<gnome_window::WindowWatcher>(
+                client,
+                "Gnome window (extension)"
+            ));
         }
     };
 
