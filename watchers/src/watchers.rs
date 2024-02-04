@@ -9,7 +9,7 @@ mod idle;
 mod kwin_window;
 mod wl_connection;
 mod wl_ext_idle_notify;
-mod wl_foreign_toplevel;
+mod wl_foreign_toplevel_management;
 mod wl_kwin_idle;
 mod x11_connection;
 mod x11_screensaver_idle;
@@ -81,11 +81,11 @@ async fn filter_first_supported(
         WatcherType::Idle => {
             watch!(create_watcher::<wl_ext_idle_notify::IdleWatcher>(
                 client,
-                "Wayland idle (ext_idle_notification_v1)"
+                "Wayland idle (ext-idle-notify-v1)"
             ));
             watch!(create_watcher::<wl_kwin_idle::IdleWatcher>(
                 client,
-                "Wayland idle (KWin)"
+                "Wayland idle (KDE)"
             ));
             watch!(create_watcher::<x11_screensaver_idle::IdleWatcher>(
                 client,
@@ -98,7 +98,9 @@ async fn filter_first_supported(
             ));
         }
         WatcherType::ActiveWindow => {
-            watch!(create_watcher::<wl_foreign_toplevel::WindowWatcher>(
+            watch!(create_watcher::<
+                wl_foreign_toplevel_management::WindowWatcher,
+            >(
                 client,
                 "Wayland window (wlr-foreign-toplevel-management-unstable-v1)"
             ));

@@ -66,7 +66,7 @@ where
         self.globals
             .bind::<ZwlrForeignToplevelManagerV1, T, ()>(
                 &self.queue_handle,
-                1..=OrgKdeKwinIdle::interface().version,
+                1..=ZwlrForeignToplevelManagerV1::interface().version,
                 (),
             )
             .map_err(std::convert::Into::into)
