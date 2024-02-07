@@ -31,6 +31,11 @@ External modules are run like in the original ActivityWatch distribution
 by looking at `$PATH` and running all executables whose name starts with `aw-`.
 They are controled from the tray, no additional configuration is necessary.
 
+#### Autostart
+
+Using `~/.config/autostart` is preferable, which is used by "Autostart" in KDE settings or Gnome Tweaks.
+Systemd may require to sleep for a few seconds (`ExecStartPre=/bin/sleep 5`) in order to wait for the environment.
+
 ## Supported environments
 
 ActivityWatch server should be run before `awatcher` is running.
@@ -120,11 +125,6 @@ to see what application names and titles are reported to the server.
 ```
 $ awatcher -vvv --no-server
 ```
-
-### Autostart
-
-Using `~/.config/autostart` is preferable, which is used by "Autostart" in KDE settings or Gnome Tweaks.
-Systemd may require to sleep for a few seconds (`ExecStartPre=/bin/sleep 5`) in order to wait for the environment.
 
 ## Build
 
