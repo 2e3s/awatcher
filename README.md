@@ -18,8 +18,8 @@ The binaries for the bundle, bundled DEB and ActivityWatch watchers replacement 
 - Run `sudo unzip aw-awatcher.zip -d /usr/local/bin` in the console to allow ActivityWatch to detect its presence.
   - Or install the provided **aw-awatcher_\*.deb**.
 - Remove `aw-watcher-window` and `aw-watcher-afk` from autostart at `aw-qt/aw-qt.toml` in [config directory](https://docs.activitywatch.net/en/latest/directories.html#config),
-  add `aw-awatcher`
-- Restart ActivityWatch. In the Modules submenu there should be a new checked module **aw-awatcher**.
+  add `aw-awatcher`.
+- Restart ActivityWatch. In the Modules submenu there should be a new checked module **aw-awatcher**. Note that awatcher shows up in the Web UI under Timeline as `aw-watcher-window_$HOSTNAME`.
 
 ### Bundle with built-in ActivityWatch
 
@@ -33,7 +33,7 @@ They are controled from the tray, no additional configuration is necessary.
 
 #### Autostart
 
-Using `~/.config/autostart` is preferable, which is used by "Autostart" in KDE settings or Gnome Tweaks.
+It is recommended to use `~/.config/autostart` for the bundle. This folder is employed by "Autostart" in KDE settings and Gnome Tweaks.
 Systemd may require to sleep for a few seconds (`ExecStartPre=/bin/sleep 5`) in order to wait for the environment.
 
 ## Supported environments
