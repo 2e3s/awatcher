@@ -33,7 +33,7 @@ They are controled from the tray, no additional configuration is necessary.
 
 #### Autostart
 
-When using the Bundle using `~/.config/autostart` is preferable, which is used by "Autostart" in KDE settings or Gnome Tweaks.
+It is recommended to use `~/.config/autostart` for the bundle. This folder is employed by "Autostart" in KDE settings and Gnome Tweaks.
 Systemd may require to sleep for a few seconds (`ExecStartPre=/bin/sleep 5`) in order to wait for the environment.
 
 ## Supported environments
