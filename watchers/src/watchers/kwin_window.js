@@ -12,7 +12,7 @@ function send(client) {
     );
 }
 
-workspace.clientActivated.connect(function(client){
+workspace.windowActivated.connect(function(client){
     if (client === null) {
         return;
     }

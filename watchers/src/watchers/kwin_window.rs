@@ -95,7 +95,7 @@ impl KWinScript {
         self.dbus_connection
             .call_method(
                 Some("org.kde.KWin"),
-                format!("/{script_number}"),
+                format!("/Scripting/Script{script_number}"),
                 Some("org.kde.kwin.Script"),
                 "run",
                 &(),
