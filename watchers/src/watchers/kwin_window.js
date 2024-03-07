@@ -12,7 +12,7 @@ function send(client) {
     );
 }
 
-workspace.windowActivated.connect(function(client){
+let handler = function(client){
     if (client === null) {
         return;
     }
@@ -26,4 +26,12 @@ workspace.windowActivated.connect(function(client){
     }
 
     send(client);
-});
+};
+
+let activationEvent = workspace.windowActivated ? workspace.windowActivated : workspace.clientActivated;
+if (workspace.windowActivated) {
+    workspace.windowActivated.connect(handler);
+} else {
+    // KDE version < 6
+    workspace.clientActivated.connect(handler);
+}

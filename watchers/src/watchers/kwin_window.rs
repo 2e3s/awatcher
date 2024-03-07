@@ -92,10 +92,16 @@ impl KWinScript {
 
     async fn start(&self, script_number: i32) -> anyhow::Result<()> {
         debug!("Starting KWin script {script_number}");
+
+        let path = if self.get_major_version().await < 6 {
+            format!("/{script_number}")
+        } else {
+            format!("/Scripting/Script{script_number}")
+        };
         self.dbus_connection
             .call_method(
                 Some("org.kde.KWin"),
-                format!("/Scripting/Script{script_number}"),
+                path,
                 Some("org.kde.kwin.Script"),
                 "run",
                 &(),
@@ -103,6 +109,61 @@ impl KWinScript {
             .await
             .with_context(|| "Error on starting the script")?;
         Ok(())
+    }
+
+    async fn get_major_version(&self) -> i8 {
+        if let Ok(version) = Self::get_major_version_from_env() {
+            debug!("KWin version from KDE_SESSION_VERSION: {version}");
+
+            version
+        } else {
+            self.get_major_version_from_dbus()
+                .await
+                .unwrap_or_else(|e| {
+                    error!("Failed to get KWin version: {e}");
+                    5
+                })
+        }
+    }
+
+    fn get_major_version_from_env() -> anyhow::Result<i8> {
+        env::var("KDE_SESSION_VERSION")?
+            .parse::<i8>()
+            .map_err(std::convert::Into::into)
+    }
+
+    async fn get_major_version_from_dbus(&self) -> anyhow::Result<i8> {
+        let support_information: String = self
+            .dbus_connection
+            .call_method(
+                Some("org.kde.KWin"),
+                "/KWin",
+                Some("org.kde.KWin"),
+                "supportInformation",
+                &(),
+            )
+            .await?
+            .body::<String>()?;
+
+        // find a string like "KWin version: 5.27.8" and extract the version number from it:
+        let version = support_information
+            .lines()
+            .find(|line| line.starts_with("KWin version: "))
+            .ok_or(anyhow!("KWin version not found"))?
+            .split_whitespace()
+            .last()
+            .ok_or(anyhow!("KWin version is invalid"))?;
+
+        // Extract the major version number from the version number like "5.27.8":
+        let major_version = version
+            .split('.')
+            .next()
+            .ok_or(anyhow!("KWin version is invalid: {version}"))?
+            .parse::<i8>()?;
+
+        debug!("KWin version from DBus: {version}, major version: {major_version}");
+
+        Ok(major_version)
     }
 }
 
