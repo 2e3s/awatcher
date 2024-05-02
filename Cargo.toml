@@ -12,13 +12,13 @@ name = "awatcher"
 path = "src/main.rs"
 
 [build-dependencies]
-image = { version = "0.24.7" }
+image = { version = "0.25.1" }
 
 [workspace]
 members = ["watchers"]
 
 [workspace.package]
-version = "0.2.5"
+version = "0.2.6"
 
 [workspace.dependencies]
 anyhow = "1.0.75"
@@ -27,7 +27,7 @@ tokio = { version = "1.35.1" }
 serde = "1.0.193"
 
 [dev-dependencies]
-rstest = "0.18.2"
+rstest = "0.19.0"
 tempfile = "3.8.1"
 
 [dependencies]

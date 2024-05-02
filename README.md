@@ -61,7 +61,7 @@ The config file is in the default directory (`~/.config/awatcher`).
 ```toml
 [server]
 port = 5600
-host = "localhost"
+host = "127.0.0.1"
 
 [awatcher]
 idle-timeout-seconds=180

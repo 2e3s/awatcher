@@ -11,5 +11,5 @@ pub fn port() -> u32 {
     5600
 }
 pub fn host() -> String {
-    "localhost".to_string()
+    "127.0.0.1".to_string()
 }

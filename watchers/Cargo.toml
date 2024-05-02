@@ -10,7 +10,7 @@ crate-type = ["lib"]
 path = "src/lib.rs"
 
 [dev-dependencies]
-rstest = "0.18.2"
+rstest = "0.19.0"
 tempfile = "3.8.1"
 
 [dependencies]
