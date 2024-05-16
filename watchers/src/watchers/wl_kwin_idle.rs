@@ -16,32 +16,35 @@ use wayland_protocols_plasma::idle::client::org_kde_kwin_idle_timeout::{
 };
 
 struct IdleState {
-    idle_timeout: OrgKdeKwinIdleTimeout,
+    kwin_idle_timeout: OrgKdeKwinIdleTimeout,
     last_input_time: DateTime<Utc>,
     is_idle: bool,
     is_changed: bool,
+    idle_timeout: Duration,
 }
 
 impl Drop for IdleState {
     fn drop(&mut self) {
         info!("Releasing idle timeout");
-        self.idle_timeout.release();
+        self.kwin_idle_timeout.release();
     }
 }
 
 impl IdleState {
-    fn new(idle_timeout: OrgKdeKwinIdleTimeout) -> Self {
+    fn new(kwin_idle_timeout: OrgKdeKwinIdleTimeout, idle_timeout: Duration) -> Self {
         Self {
-            idle_timeout,
+            kwin_idle_timeout,
             last_input_time: Utc::now(),
             is_idle: false,
             is_changed: false,
+            idle_timeout,
         }
     }
 
     fn idle(&mut self) {
         self.is_idle = true;
         self.is_changed = true;
+        self.last_input_time -= self.idle_timeout;
         debug!("Idle");
     }
 
@@ -135,8 +138,10 @@ impl Watcher for IdleWatcher {
         connection.get_kwin_idle()?;
 
         let timeout = u32::try_from(client.config.idle_timeout.as_secs() * 1000);
-        let mut idle_state =
-            IdleState::new(connection.get_kwin_idle_timeout(timeout.unwrap()).unwrap());
+        let mut idle_state = IdleState::new(
+            connection.get_kwin_idle_timeout(timeout.unwrap()).unwrap(),
+            Duration::from_std(client.config.idle_timeout).unwrap(),
+        );
         connection.event_queue.roundtrip(&mut idle_state).unwrap();
 
         Ok(Self {

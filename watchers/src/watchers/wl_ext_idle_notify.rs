@@ -19,6 +19,7 @@ struct IdleState {
     last_input_time: DateTime<Utc>,
     is_idle: bool,
     is_changed: bool,
+    idle_timeout: Duration,
 }
 
 impl Drop for IdleState {
@@ -29,18 +30,20 @@ impl Drop for IdleState {
 }
 
 impl IdleState {
-    fn new(idle_notification: ExtIdleNotificationV1) -> Self {
+    fn new(idle_notification: ExtIdleNotificationV1, idle_timeout: Duration) -> Self {
         Self {
             idle_notification,
             last_input_time: Utc::now(),
             is_idle: false,
             is_changed: false,
+            idle_timeout,
         }
     }
 
     fn idle(&mut self) {
         self.is_idle = true;
         self.is_changed = true;
+        self.last_input_time -= self.idle_timeout;
         debug!("Idle");
     }
 
@@ -138,6 +141,7 @@ impl Watcher for IdleWatcher {
             connection
                 .get_ext_idle_notification(timeout.unwrap())
                 .unwrap(),
+            Duration::from_std(client.config.idle_timeout).unwrap(),
         );
         connection.event_queue.roundtrip(&mut idle_state).unwrap();
 
