@@ -5,7 +5,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use zbus::Connection;
 
-use super::{gnome_wayland::load_watcher, gnome_wayland::GnomeWatcher, Watcher};
+use super::{gnome_wayland::load_watcher, Watcher};
 
 pub struct WindowWatcher {
     dbus_connection: Connection,
@@ -79,23 +79,20 @@ impl WindowWatcher {
     }
 }
 
-impl GnomeWatcher for WindowWatcher {
-    async fn load() -> anyhow::Result<Self> {
-        let watcher = Self {
-            dbus_connection: Connection::session().await?,
-            last_app_id: String::new(),
-            last_title: String::new(),
-        };
-        watcher.get_window_data().await?;
-
-        Ok(watcher)
-    }
-}
-
 #[async_trait]
 impl Watcher for WindowWatcher {
     async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
-        load_watcher().await
+        load_watcher(|| async move {
+            let watcher = Self {
+                dbus_connection: Connection::session().await?,
+                last_app_id: String::new(),
+                last_title: String::new(),
+            };
+            watcher.get_window_data().await?;
+
+            Ok(watcher)
+        })
+        .await
     }
 
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {

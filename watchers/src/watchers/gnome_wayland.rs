@@ -1,9 +1,4 @@
-// The extension may not be loaded and available right away in Gnome, this mod will retry a few times.
-pub trait GnomeWatcher {
-    async fn load() -> anyhow::Result<Self>
-    where
-        Self: Sized;
-}
+use std::future::Future;
 
 fn is_gnome() -> bool {
     if let Ok(de) = std::env::var("XDG_CURRENT_DESKTOP") {
@@ -21,12 +16,16 @@ fn is_wayland() -> bool {
             .contains("wayland")
 }
 
-pub async fn load_watcher<T: GnomeWatcher>() -> anyhow::Result<T> {
+pub async fn load_watcher<T, F, Fut>(loader: F) -> anyhow::Result<T>
+where
+    F: Fn() -> Fut,
+    Fut: Future<Output = anyhow::Result<T>>,
+{
     if is_gnome() && is_wayland() {
         debug!("Gnome Wayland detected");
         let mut watcher = Err(anyhow::anyhow!(""));
         for _ in 0..3 {
-            watcher = T::load().await;
+            watcher = loader().await;
             if let Err(e) = &watcher {
                 debug!("Failed to load Gnome Wayland watcher: {e}");
                 tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
@@ -35,6 +34,6 @@ pub async fn load_watcher<T: GnomeWatcher>() -> anyhow::Result<T> {
 
         watcher
     } else {
-        T::load().await
+        loader().await
     }
 }

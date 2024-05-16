@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::Duration;
 
 use super::{idle, x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
@@ -6,10 +7,10 @@ use std::sync::Arc;
 
 pub struct IdleWatcher {
     client: X11Client,
-    is_idle: bool,
+    idle_state: idle::State,
 }
 
-impl idle::SinceLastInput for IdleWatcher {
+impl IdleWatcher {
     async fn seconds_since_input(&mut self) -> anyhow::Result<u32> {
         self.client.seconds_since_last_input()
     }
@@ -17,7 +18,7 @@ impl idle::SinceLastInput for IdleWatcher {
 
 #[async_trait]
 impl Watcher for IdleWatcher {
-    async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
+    async fn new(report_client: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut client = X11Client::new()?;
 
         // Check if screensaver extension is supported
@@ -25,12 +26,17 @@ impl Watcher for IdleWatcher {
 
         Ok(IdleWatcher {
             client,
-            is_idle: false,
+            idle_state: idle::State::new(
+                Duration::from_std(report_client.config.idle_timeout).unwrap(),
+            ),
         })
     }
 
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        self.is_idle = idle::ping_since_last_input(self, self.is_idle, client).await?;
+        let seconds = self.seconds_since_input().await?;
+        self.idle_state
+            .send_with_last_input(seconds, client)
+            .await?;
 
         Ok(())
     }
