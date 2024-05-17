@@ -69,7 +69,11 @@ impl State {
         self.send_ping(now, client).await
     }
 
-    async fn send_ping(&mut self, now: DateTime<Utc>, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn send_ping(
+        &mut self,
+        now: DateTime<Utc>,
+        client: &Arc<ReportClient>,
+    ) -> anyhow::Result<()> {
         if self.is_changed {
             let result = if self.is_idle {
                 debug!("Reporting as changed to idle");
@@ -82,7 +86,7 @@ impl State {
                     .ping(
                         true,
                         self.last_input_time + Duration::milliseconds(1),
-                        Duration::zero(),
+                        now - self.last_input_time,
                     )
                     .await
             } else {
