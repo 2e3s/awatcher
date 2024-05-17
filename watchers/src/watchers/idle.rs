@@ -38,9 +38,10 @@ impl State {
         seconds_since_input: u32,
         client: &Arc<ReportClient>,
     ) -> anyhow::Result<()> {
+        let now = Utc::now();
         let time_since_input = Duration::seconds(i64::from(seconds_since_input));
 
-        self.last_input_time = Utc::now() - time_since_input;
+        self.last_input_time = now - time_since_input;
 
         if self.is_idle
             && u64::from(seconds_since_input) < self.idle_timeout.num_seconds().try_into().unwrap()
@@ -56,9 +57,7 @@ impl State {
             self.is_changed = true;
         }
 
-        self.send_ping(client).await?;
-
-        Ok(())
+        self.send_ping(now, client).await
     }
 
     pub async fn send_reactive(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
@@ -67,12 +66,10 @@ impl State {
             self.last_input_time = now;
         }
 
-        self.send_ping(client).await
+        self.send_ping(now, client).await
     }
 
-    async fn send_ping(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        let now = Utc::now();
-
+    async fn send_ping(&mut self, now: DateTime<Utc>, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         if self.is_changed {
             let result = if self.is_idle {
                 debug!("Reporting as changed to idle");
