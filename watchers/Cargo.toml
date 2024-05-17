@@ -11,27 +11,27 @@ path = "src/lib.rs"
 
 [dev-dependencies]
 rstest = "0.19.0"
-tempfile = "3.8.1"
+tempfile = "3.10.1"
 
 [dependencies]
 aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust", rev = "448312d" }
 wayland-client = "0.31.1"
-wayland-protocols = { version = "0.31.0", features = ["staging", "client" ]}
+wayland-protocols = { version = "0.31.2", features = ["staging", "client" ]}
 wayland-protocols-plasma = { version = "0.2.0", features = ["client"] }
 wayland-protocols-wlr = { version = "0.2.0", features = ["client"] }
-x11rb = { version = "0.13.0", features = ["screensaver"] }
+x11rb = { version = "0.13.1", features = ["screensaver"] }
 zbus = {version = "4.2.1", optional = true}
-chrono = "0.4.31"
-toml = "0.8.8"
+chrono = "0.4.38"
+toml = "0.8.13"
 dirs = "5.0.1"
 serde = { workspace = true, features = ["derive"] }
 serde_default = "0.1.0"
-serde_json = "1.0.108"
-regex = "1.10.2"
+serde_json = "1.0.117"
+regex = "1.10.4"
 gethostname = "0.4.3"
 log = { workspace = true }
 anyhow = { workspace = true }
-async-trait = "0.1.75"
+async-trait = "0.1.80"
 tokio = { workspace = true, features = ["time", "sync"] }
 
 [features]
