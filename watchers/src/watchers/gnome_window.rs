@@ -34,8 +34,9 @@ impl WindowWatcher {
 
         match call_response {
             Ok(json) => {
-                let json = json
-                    .body::<String>()
+                let json: String = json
+                    .body()
+                    .deserialize()
                     .with_context(|| "DBus interface cannot be parsed as string")?;
                 serde_json::from_str(&json).with_context(|| {
                     format!("DBus interface org.gnome.shell.extensions.FocusedWindow returned wrong JSON: {json}")

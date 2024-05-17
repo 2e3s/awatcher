@@ -12,7 +12,7 @@ use std::path::Path;
 use std::sync::{mpsc::channel, Arc};
 use std::thread;
 use tokio::sync::Mutex;
-use zbus::dbus_interface;
+use zbus::interface;
 use zbus::{Connection, ConnectionBuilder};
 
 const KWIN_SCRIPT_NAME: &str = "activity_watcher";
@@ -53,7 +53,8 @@ impl KWinScript {
                 &KWIN_SCRIPT_NAME,
             )
             .await?
-            .body::<bool>()
+            .body()
+            .deserialize()
             .map_err(std::convert::Into::into)
     }
 
@@ -72,7 +73,8 @@ impl KWinScript {
                 &(temp_path, KWIN_SCRIPT_NAME),
             )
             .await?
-            .body::<i32>()
+            .body()
+            .deserialize()
             .map_err(std::convert::Into::into)
     }
 
@@ -86,7 +88,8 @@ impl KWinScript {
                 &KWIN_SCRIPT_NAME,
             )
             .await?
-            .body::<bool>()
+            .body()
+            .deserialize()
             .map_err(std::convert::Into::into)
     }
 
@@ -143,7 +146,8 @@ impl KWinScript {
                 &(),
             )
             .await?
-            .body::<String>()?;
+            .body()
+            .deserialize()?;
 
         // find a string like "KWin version: 5.27.8" and extract the version number from it:
         let version = support_information
@@ -206,7 +210,7 @@ struct ActiveWindowInterface {
     active_window: Arc<Mutex<ActiveWindow>>,
 }
 
-#[dbus_interface(name = "com._2e3s.Awatcher")]
+#[interface(name = "com._2e3s.Awatcher")]
 impl ActiveWindowInterface {
     async fn notify_active_window(
         &mut self,
@@ -274,7 +278,7 @@ impl Watcher for WindowWatcher {
                         Ok(connection) => {
                             tx.send(None).unwrap();
                             loop {
-                                connection.monitor_activity().wait();
+                                connection.monitor_activity().await;
                             }
                         }
                         Err(e) => tx.send(Some(e)),

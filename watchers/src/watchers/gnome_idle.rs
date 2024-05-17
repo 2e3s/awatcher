@@ -13,7 +13,7 @@ pub struct IdleWatcher {
 
 impl IdleWatcher {
     async fn seconds_since_input(&mut self) -> anyhow::Result<u32> {
-        let ms = self
+        let ms: u64 = self
             .dbus_connection
             .call_method(
                 Some("org.gnome.Mutter.IdleMonitor"),
@@ -23,7 +23,8 @@ impl IdleWatcher {
                 &(),
             )
             .await?
-            .body::<u64>()?;
+            .body()
+            .deserialize()?;
         u32::try_from(ms / 1000).with_context(|| format!("Number {ms} is invalid"))
     }
 }
