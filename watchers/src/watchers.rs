@@ -18,7 +18,7 @@ mod x11_window;
 use crate::{config::Config, report_client::ReportClient};
 use async_trait::async_trait;
 use std::{fmt::Display, sync::Arc};
-use tokio::time;
+use tokio::time::{sleep, timeout, Duration};
 
 pub enum WatcherType {
     Idle,
@@ -26,7 +26,7 @@ pub enum WatcherType {
 }
 
 impl WatcherType {
-    fn sleep_time(&self, config: &Config) -> time::Duration {
+    fn sleep_time(&self, config: &Config) -> Duration {
         match self {
             WatcherType::Idle => config.poll_time_idle,
             WatcherType::ActiveWindow => config.poll_time_window,
@@ -130,10 +130,19 @@ pub async fn run_first_supported(client: Arc<ReportClient>, watcher_type: &Watch
     if let Some(mut watcher) = supported_watcher {
         info!("Starting {watcher_type} watcher");
         loop {
-            if let Err(e) = watcher.run_iteration(&client).await {
-                error!("Error on {watcher_type} iteration: {e}");
+            let sleep_time = watcher_type.sleep_time(&client.config);
+
+            match timeout(sleep_time, watcher.run_iteration(&client)).await {
+                Ok(Ok(())) => { /* Successfully completed. */ }
+                Ok(Err(e)) => {
+                    error!("Error on {watcher_type} iteration: {e}");
+                }
+                Err(_) => {
+                    error!("Timeout on {watcher_type} iteration after {:?}", sleep_time);
+                }
             }
-            time::sleep(watcher_type.sleep_time(&client.config)).await;
+
+            sleep(sleep_time).await;
         }
     }
 
