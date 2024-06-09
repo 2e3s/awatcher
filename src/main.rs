@@ -8,6 +8,7 @@ extern crate log;
 mod bundle;
 mod config;
 
+use std::error::Error;
 use std::sync::Arc;
 use tokio::signal::unix::{signal, SignalKind};
 #[cfg(feature = "bundle")]
@@ -15,7 +16,7 @@ use tokio::sync::mpsc;
 use watchers::{run_first_supported, ReportClient, WatcherType};
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> anyhow::Result<(), Box<dyn Error>> {
     let config = config::from_cli()?;
     #[cfg(feature = "bundle")]
     let no_tray = config.no_tray;

@@ -7,7 +7,7 @@ pub fn poll_time_idle_seconds() -> u32 {
 pub fn poll_time_window_seconds() -> u32 {
     1
 }
-pub fn port() -> u32 {
+pub fn port() -> u16 {
     5600
 }
 pub fn host() -> String {
