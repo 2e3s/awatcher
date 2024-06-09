@@ -1,0 +1,17 @@
+[Service]
+Type=simple
+TimeoutStartSec=120
+ExecStartPre=/bin/sleep 5
+ExecStart=aw-awatcher
+Restart=always
+RestartSec=5
+RestartSteps=2
+RestartMaxDelaySec=15
+
+[Unit]
+Description=AWatcher
+After=aw-server.service graphical-session.target
+Requires=aw-server.service
+
+[Install]
+WantedBy=graphical-session.target
