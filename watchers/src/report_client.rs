@@ -39,24 +39,22 @@ impl ReportClient {
         Fut: Future<Output = Result<T, E>>,
         E: std::error::Error + Send + Sync + 'static,
     {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
-        let mut attempts = 0;
-        loop {
+        for (attempt, &secs) in [1, 2].iter().enumerate() {
             match f().await {
                 Ok(val) => return Ok(val),
                 Err(e)
-                    if attempts < 3
-                        && e.to_string()
-                            .contains("tcp connect error: Connection refused") =>
+                    if e.to_string()
+                        .contains("tcp connect error: Connection refused") =>
                 {
-                    warn!("Failed to connect, retrying: {}", e);
+                    warn!("Failed to connect on attempt #{attempt}, retrying: {}", e);
 
-                    attempts += 1;
-                    interval.tick().await;
+                    tokio::time::sleep(tokio::time::Duration::from_secs(secs)).await;
                 }
                 Err(e) => return Err(e),
             }
         }
+
+        f().await
     }
 
     pub async fn ping(
