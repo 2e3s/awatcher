@@ -3,8 +3,8 @@ use anyhow::Context;
 use aw_client_rust::{AwClient, Event as AwEvent};
 use chrono::{DateTime, Duration, Utc};
 use serde_json::{Map, Value};
-use std::future::Future;
 use std::error::Error;
+use std::future::Future;
 
 pub struct ReportClient {
     pub client: AwClient,

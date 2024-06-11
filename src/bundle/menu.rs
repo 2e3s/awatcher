@@ -7,7 +7,7 @@ use super::modules::Manager;
 
 pub struct Tray {
     server_host: String,
-    server_port: u32,
+    server_port: u16,
     config_file: PathBuf,
     shutdown_sender: UnboundedSender<()>,
     watchers_manager: Manager,
@@ -17,7 +17,7 @@ pub struct Tray {
 impl Tray {
     pub fn new(
         server_host: String,
-        server_port: u32,
+        server_port: u16,
         config_file: PathBuf,
         shutdown_sender: UnboundedSender<()>,
         watchers_manager: Manager,

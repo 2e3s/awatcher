@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use aw_server::endpoints::{build_rocket, AssetResolver, ServerState};
 use std::sync::Mutex;
 
-pub async fn run(port: u32) {
+pub async fn run(port: u16) {
     let db_path = aw_server::dirs::db_path(false)
         .map_err(|()| anyhow!("DB path is not found"))
         .unwrap()
@@ -12,7 +12,7 @@ pub async fn run(port: u32) {
     let device_id = aw_server::device_id::get_device_id();
     let mut config = aw_server::config::create_config(false);
     config.address = "127.0.0.1".to_string();
-    config.port = u16::try_from(port).unwrap();
+    config.port = port;
 
     let legacy_import = false;
     let server_state = ServerState {

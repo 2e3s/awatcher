@@ -8,7 +8,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 pub async fn run(
     host: String,
-    port: u32,
+    port: u16,
     config_file: PathBuf,
     no_tray: bool,
     shutdown_sender: UnboundedSender<()>,
