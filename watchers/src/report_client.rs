@@ -4,6 +4,7 @@ use aw_client_rust::{AwClient, Event as AwEvent};
 use chrono::{DateTime, Duration, Utc};
 use serde_json::{Map, Value};
 use std::future::Future;
+use std::error::Error;
 
 pub struct ReportClient {
     pub client: AwClient,
@@ -13,8 +14,8 @@ pub struct ReportClient {
 }
 
 impl ReportClient {
-    pub async fn new(config: Config) -> anyhow::Result<Self> {
-        let client = AwClient::new(&config.host, &config.port.to_string(), "awatcher");
+    pub async fn new(config: Config) -> anyhow::Result<Self, Box<dyn Error>> {
+        let client = AwClient::new(&config.host, config.port, "awatcher")?;
 
         let hostname = gethostname::gethostname().into_string().unwrap();
         let idle_bucket_name = format!("aw-watcher-afk_{hostname}");

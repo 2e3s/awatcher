@@ -52,7 +52,7 @@ pub fn default_config() -> String {
 #[derive(Deserialize, DefaultFromSerde)]
 pub struct ServerConfig {
     #[serde(default = "defaults::port")]
-    pub port: u32,
+    pub port: u16,
     #[serde(default = "defaults::host")]
     pub host: String,
 }

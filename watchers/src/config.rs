@@ -7,7 +7,7 @@ pub use file_config::FileConfig;
 use std::time::Duration;
 
 pub struct Config {
-    pub port: u32,
+    pub port: u16,
     pub host: String,
     pub idle_timeout: Duration,
     pub poll_time_idle: Duration,
