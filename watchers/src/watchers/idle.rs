@@ -1,9 +1,10 @@
 use crate::report_client::ReportClient;
 use chrono::{DateTime, Duration, Utc};
-use std::sync::Arc;
+use std::{cmp::max, sync::Arc};
 
 pub struct State {
     last_input_time: DateTime<Utc>,
+    changed_time: DateTime<Utc>,
     is_idle: bool,
     is_changed: bool,
     idle_timeout: Duration,
@@ -13,22 +14,26 @@ impl State {
     pub fn new(idle_timeout: Duration) -> Self {
         Self {
             last_input_time: Utc::now(),
+            changed_time: Utc::now(),
             is_idle: false,
             is_changed: false,
             idle_timeout,
         }
     }
 
-    pub fn mark_not_idle(&mut self) {
-        self.is_idle = false;
+    fn set_idle(&mut self, is_idle: bool, now: DateTime<Utc>) {
+        self.is_idle = is_idle;
         self.is_changed = true;
+        self.changed_time = now;
+    }
+
+    pub fn mark_not_idle(&mut self) {
         self.last_input_time = Utc::now();
+        self.set_idle(false, self.last_input_time);
     }
 
     pub fn mark_idle(&mut self) {
-        self.is_idle = true;
-        self.is_changed = true;
-        self.last_input_time -= self.idle_timeout;
+        self.set_idle(true, Utc::now());
     }
 
     // The logic is rewritten from the original Python code:
@@ -47,14 +52,12 @@ impl State {
             && u64::from(seconds_since_input) < self.idle_timeout.num_seconds().try_into().unwrap()
         {
             debug!("No longer idle");
-            self.is_idle = false;
-            self.is_changed = true;
+            self.set_idle(false, now);
         } else if !self.is_idle
             && u64::from(seconds_since_input) >= self.idle_timeout.num_seconds().try_into().unwrap()
         {
             debug!("Idle again");
-            self.is_idle = true;
-            self.is_changed = true;
+            self.set_idle(true, now);
         }
 
         self.send_ping(now, client).await
@@ -63,7 +66,7 @@ impl State {
     pub async fn send_reactive(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         let now = Utc::now();
         if !self.is_idle {
-            self.last_input_time = now;
+            self.last_input_time = max(now - self.idle_timeout, self.changed_time);
         }
 
         self.send_ping(now, client).await
