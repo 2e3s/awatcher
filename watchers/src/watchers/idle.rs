@@ -82,12 +82,9 @@ impl State {
                     .await?;
 
                 // ping with timestamp+1ms with the next event (to ensure the latest event gets retrieved by get_event)
+                self.last_input_time += Duration::milliseconds(1);
                 client
-                    .ping(
-                        true,
-                        self.last_input_time + Duration::milliseconds(1),
-                        now - self.last_input_time,
-                    )
+                    .ping(true, self.last_input_time, now - self.last_input_time)
                     .await
             } else {
                 debug!("Reporting as no longer idle");
@@ -95,6 +92,7 @@ impl State {
                 client
                     .ping(true, self.last_input_time, Duration::zero())
                     .await?;
+
                 client
                     .ping(
                         false,
