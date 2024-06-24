@@ -3,8 +3,8 @@ mod file_config;
 mod filters;
 
 use self::filters::{Filter, Replacement};
+use chrono::Duration;
 pub use file_config::FileConfig;
-use std::time::Duration;
 
 pub struct Config {
     pub port: u16,

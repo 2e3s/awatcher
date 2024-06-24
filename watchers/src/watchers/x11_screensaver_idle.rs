@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use chrono::Duration;
 
 use super::{idle, x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
@@ -26,9 +25,7 @@ impl Watcher for IdleWatcher {
 
         Ok(IdleWatcher {
             client,
-            idle_state: idle::State::new(
-                Duration::from_std(report_client.config.idle_timeout).unwrap(),
-            ),
+            idle_state: idle::State::new(report_client.config.idle_timeout),
         })
     }
 

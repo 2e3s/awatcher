@@ -1,5 +1,5 @@
 use crate::report_client::ReportClient;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use std::{cmp::max, sync::Arc};
 
 pub struct State {
@@ -7,14 +7,14 @@ pub struct State {
     changed_time: DateTime<Utc>,
     is_idle: bool,
     is_changed: bool,
-    idle_timeout: Duration,
+    idle_timeout: TimeDelta,
 
     idle_start: Option<DateTime<Utc>>,
     idle_end: Option<DateTime<Utc>>,
 }
 
 impl State {
-    pub fn new(idle_timeout: Duration) -> Self {
+    pub fn new(idle_timeout: TimeDelta) -> Self {
         Self {
             last_input_time: Utc::now(),
             changed_time: Utc::now(),
@@ -53,7 +53,7 @@ impl State {
         client: &Arc<ReportClient>,
     ) -> anyhow::Result<()> {
         let now = Utc::now();
-        let time_since_input = Duration::seconds(i64::from(seconds_since_input));
+        let time_since_input = TimeDelta::seconds(i64::from(seconds_since_input));
 
         self.last_input_time = now - time_since_input;
 
@@ -106,11 +106,11 @@ impl State {
                     self.last_input_time.format("%Y-%m-%d %H:%M:%S"),
                 );
                 client
-                    .ping(false, self.last_input_time, Duration::zero())
+                    .ping(false, self.last_input_time, TimeDelta::zero())
                     .await?;
 
                 // ping with timestamp+1ms with the next event (to ensure the latest event gets retrieved by get_event)
-                self.last_input_time += Duration::milliseconds(1);
+                self.last_input_time += TimeDelta::milliseconds(1);
                 client
                     .ping(true, self.last_input_time, now - self.last_input_time)
                     .await
@@ -121,14 +121,14 @@ impl State {
                 );
 
                 client
-                    .ping(true, self.last_input_time, Duration::zero())
+                    .ping(true, self.last_input_time, TimeDelta::zero())
                     .await?;
 
                 client
                     .ping(
                         false,
-                        self.last_input_time + Duration::milliseconds(1),
-                        Duration::zero(),
+                        self.last_input_time + TimeDelta::milliseconds(1),
+                        TimeDelta::zero(),
                     )
                     .await
             };
@@ -149,7 +149,7 @@ impl State {
                 self.last_input_time.format("%Y-%m-%d %H:%M:%S")
             );
             client
-                .ping(false, self.last_input_time, Duration::zero())
+                .ping(false, self.last_input_time, TimeDelta::zero())
                 .await
         }
     }

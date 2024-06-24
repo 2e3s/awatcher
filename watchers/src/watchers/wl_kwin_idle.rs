@@ -4,7 +4,7 @@ use super::Watcher;
 use crate::report_client::ReportClient;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use chrono::Duration;
+use chrono::TimeDelta;
 use std::sync::Arc;
 use wayland_client::{
     globals::GlobalListContents,
@@ -29,7 +29,7 @@ impl Drop for WatcherState {
 }
 
 impl WatcherState {
-    fn new(kwin_idle_timeout: OrgKdeKwinIdleTimeout, idle_timeout: Duration) -> Self {
+    fn new(kwin_idle_timeout: OrgKdeKwinIdleTimeout, idle_timeout: TimeDelta) -> Self {
         Self {
             kwin_idle_timeout,
             idle_state: idle::State::new(idle_timeout),
@@ -80,10 +80,10 @@ impl Watcher for IdleWatcher {
         let mut connection: WlEventConnection<WatcherState> = WlEventConnection::connect()?;
         connection.get_kwin_idle()?;
 
-        let timeout = u32::try_from(client.config.idle_timeout.as_secs() * 1000);
+        let timeout = u32::try_from(client.config.idle_timeout.num_milliseconds());
         let mut watcher_state = WatcherState::new(
             connection.get_kwin_idle_timeout(timeout.unwrap()).unwrap(),
-            Duration::from_std(client.config.idle_timeout).unwrap(),
+            client.config.idle_timeout,
         );
         connection
             .event_queue

@@ -2,7 +2,6 @@ use super::{gnome_wayland::load_watcher, idle, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
 use async_trait::async_trait;
-use chrono::Duration;
 use std::sync::Arc;
 use zbus::Connection;
 
@@ -32,7 +31,7 @@ impl IdleWatcher {
 #[async_trait]
 impl Watcher for IdleWatcher {
     async fn new(client: &Arc<ReportClient>) -> anyhow::Result<Self> {
-        let duration = Duration::from_std(client.config.idle_timeout).unwrap();
+        let duration = client.config.idle_timeout;
         load_watcher(|| async move {
             let mut watcher = Self {
                 dbus_connection: Connection::session().await?,

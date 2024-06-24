@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Context};
+use chrono::TimeDelta;
 use serde::Deserialize;
 use serde_default::DefaultFromSerde;
-use std::{fs, io::ErrorKind, path::PathBuf, time::Duration};
+use std::{fs, io::ErrorKind, path::PathBuf};
 
 use crate::config::defaults;
 
@@ -71,16 +72,16 @@ pub struct ClientConfig {
 }
 
 impl ClientConfig {
-    pub fn get_idle_timeout(&self) -> Duration {
-        Duration::from_secs(u64::from(self.idle_timeout_seconds))
+    pub fn get_idle_timeout(&self) -> TimeDelta {
+        TimeDelta::seconds(self.idle_timeout_seconds.into())
     }
 
-    pub fn get_poll_time_idle(&self) -> Duration {
-        Duration::from_secs(u64::from(self.poll_time_idle_seconds))
+    pub fn get_poll_time_idle(&self) -> TimeDelta {
+        TimeDelta::seconds(self.poll_time_idle_seconds.into())
     }
 
-    pub fn get_poll_time_window(&self) -> Duration {
-        Duration::from_secs(u64::from(self.poll_time_window_seconds))
+    pub fn get_poll_time_window(&self) -> TimeDelta {
+        TimeDelta::seconds(self.poll_time_window_seconds.into())
     }
 }
 

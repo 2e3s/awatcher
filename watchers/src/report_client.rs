@@ -1,7 +1,7 @@
 use super::config::Config;
 use anyhow::Context;
 use aw_client_rust::{AwClient, Event as AwEvent};
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Map, Value};
 use std::error::Error;
 use std::future::Future;
@@ -61,7 +61,7 @@ impl ReportClient {
         &self,
         is_idle: bool,
         timestamp: DateTime<Utc>,
-        duration: Duration,
+        duration: TimeDelta,
     ) -> anyhow::Result<()> {
         let mut data = Map::new();
         data.insert(
@@ -80,11 +80,10 @@ impl ReportClient {
             return Ok(());
         }
 
-        let pulsetime = (self.config.idle_timeout + self.config.poll_time_idle).as_secs_f64();
-
+        let pulsetime = (self.config.idle_timeout + self.config.poll_time_idle).num_seconds();
         let request = || {
             self.client
-                .heartbeat(&self.idle_bucket_name, &event, pulsetime)
+                .heartbeat(&self.idle_bucket_name, &event, pulsetime as f64)
         };
 
         Self::run_with_retries(request)
@@ -118,7 +117,7 @@ impl ReportClient {
         let event = AwEvent {
             id: None,
             timestamp: Utc::now(),
-            duration: Duration::zero(),
+            duration: TimeDelta::zero(),
             data,
         };
 
@@ -126,10 +125,13 @@ impl ReportClient {
             return Ok(());
         }
 
-        let interval_margin = self.config.poll_time_window.as_secs_f64() + 1.0;
+        let interval_margin = self.config.poll_time_window.num_seconds() + 1;
         let request = || {
-            self.client
-                .heartbeat(&self.active_window_bucket_name, &event, interval_margin)
+            self.client.heartbeat(
+                &self.active_window_bucket_name,
+                &event,
+                interval_margin as f64,
+            )
         };
 
         Self::run_with_retries(request)

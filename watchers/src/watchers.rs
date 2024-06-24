@@ -28,8 +28,8 @@ pub enum WatcherType {
 impl WatcherType {
     fn sleep_time(&self, config: &Config) -> Duration {
         match self {
-            WatcherType::Idle => config.poll_time_idle,
-            WatcherType::ActiveWindow => config.poll_time_window,
+            WatcherType::Idle => config.poll_time_idle.to_std().unwrap(),
+            WatcherType::ActiveWindow => config.poll_time_window.to_std().unwrap(),
         }
     }
 }

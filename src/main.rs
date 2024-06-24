@@ -29,14 +29,17 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
     } else {
         info!("Sending to server {}:{}", config.host, config.port);
     }
-    info!("Idle timeout: {} seconds", config.idle_timeout.as_secs());
+    info!(
+        "Idle timeout: {} seconds",
+        config.idle_timeout.num_seconds()
+    );
     info!(
         "Idle polling period: {} seconds",
-        config.poll_time_idle.as_secs()
+        config.poll_time_idle.num_seconds()
     );
     info!(
         "Window polling period: {} seconds",
-        config.poll_time_window.as_secs()
+        config.poll_time_window.num_seconds()
     );
     #[cfg(feature = "bundle")]
     let (shutdown_send, mut shutdown_recv) = mpsc::unbounded_channel();
