@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
       - run: cargo fmt --check --all
@@ -24,9 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install -y libdbus-1-dev
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly-2023-11-01
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --locked --all-targets --all-features --workspace -- -D warnings
@@ -37,9 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install -y libdbus-1-dev
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --locked --all-targets --workspace -- -D warnings
@@ -50,9 +48,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install -y libdbus-1-dev
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly-2023-11-01
-          components: clippy
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features --workspace
