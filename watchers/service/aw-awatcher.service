@@ -1,0 +1,13 @@
+[Service]
+Type=simple
+TimeoutStartSec=120
+ExecStartPre=/bin/sleep 100
+ExecStart=aw-awatcher
+
+[Unit]
+Description=AWatcher
+After=aw-server.service
+Wants=aw-server.service
+
+[Install]
+WantedBy=default.target
