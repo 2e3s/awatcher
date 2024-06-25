@@ -12,6 +12,7 @@ path = "src/lib.rs"
 [dev-dependencies]
 rstest = "0.21.0"
 tempfile = "3.10.1"
+mockall = "0.12.1"
 
 [dependencies]
 aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust", rev = "bb787fd" }
@@ -32,7 +33,7 @@ gethostname = "0.4.3"
 log = { workspace = true }
 anyhow = { workspace = true }
 async-trait = "0.1.80"
-tokio = { workspace = true, features = ["time", "sync"] }
+tokio = { workspace = true, features = ["time", "sync", "macros"] }
 
 [features]
 default = ["gnome", "kwin_window"]

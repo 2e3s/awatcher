@@ -1,4 +1,4 @@
-use crate::report_client::ReportClient;
+use crate::subscriber::IdleSubscriber;
 use chrono::{DateTime, TimeDelta, Utc};
 use std::{cmp::max, sync::Arc};
 
@@ -8,13 +8,14 @@ pub struct State {
     is_idle: bool,
     is_changed: bool,
     idle_timeout: TimeDelta,
+    subscriber: Arc<dyn IdleSubscriber>,
 
     idle_start: Option<DateTime<Utc>>,
     idle_end: Option<DateTime<Utc>>,
 }
 
 impl State {
-    pub fn new(idle_timeout: TimeDelta) -> Self {
+    pub fn new(idle_timeout: TimeDelta, subscriber: Arc<dyn IdleSubscriber>) -> Self {
         Self {
             last_input_time: Utc::now(),
             changed_time: Utc::now(),
@@ -23,6 +24,7 @@ impl State {
             idle_timeout,
             idle_start: None,
             idle_end: None,
+            subscriber,
         }
     }
 
@@ -47,11 +49,7 @@ impl State {
 
     // The logic is rewritten from the original Python code:
     // https://github.com/ActivityWatch/aw-watcher-afk/blob/ef531605cd8238e00138bbb980e5457054e05248/aw_watcher_afk/afk.py#L73
-    pub async fn send_with_last_input(
-        &mut self,
-        seconds_since_input: u32,
-        client: &Arc<ReportClient>,
-    ) -> anyhow::Result<()> {
+    pub async fn send_with_last_input(&mut self, seconds_since_input: u32) -> anyhow::Result<()> {
         let now = Utc::now();
         let time_since_input = TimeDelta::seconds(i64::from(seconds_since_input));
 
@@ -69,10 +67,10 @@ impl State {
             self.set_idle(true, now);
         }
 
-        self.send_ping(now, client).await
+        self.send_ping(now).await
     }
 
-    pub async fn send_reactive(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+    pub async fn send_reactive(&mut self) -> anyhow::Result<()> {
         let now = Utc::now();
         if !self.is_idle {
             self.last_input_time = max(now - self.idle_timeout, self.changed_time);
@@ -90,67 +88,79 @@ impl State {
             }
         }
 
-        self.send_ping(now, client).await
+        self.send_ping(now).await
     }
 
-    async fn send_ping(
-        &mut self,
-        now: DateTime<Utc>,
-        client: &Arc<ReportClient>,
-    ) -> anyhow::Result<()> {
+    async fn send_ping(&mut self, now: DateTime<Utc>) -> anyhow::Result<()> {
         if self.is_changed {
-            let result = if self.is_idle {
-                debug!(
-                    "Reporting as changed to idle for {} seconds since {}",
-                    (now - self.last_input_time).num_seconds(),
-                    self.last_input_time.format("%Y-%m-%d %H:%M:%S"),
-                );
-                client
-                    .ping(false, self.last_input_time, TimeDelta::zero())
-                    .await?;
-
-                // ping with timestamp+1ms with the next event (to ensure the latest event gets retrieved by get_event)
-                self.last_input_time += TimeDelta::milliseconds(1);
-                client
-                    .ping(true, self.last_input_time, now - self.last_input_time)
-                    .await
-            } else {
-                debug!(
-                    "Reporting as no longer idle at {}",
-                    self.last_input_time.format("%Y-%m-%d %H:%M:%S")
-                );
-
-                client
-                    .ping(true, self.last_input_time, TimeDelta::zero())
-                    .await?;
-
-                client
-                    .ping(
-                        false,
-                        self.last_input_time + TimeDelta::milliseconds(1),
-                        TimeDelta::zero(),
+            if self.is_idle {
+                self.subscriber
+                    .idle(
+                        self.is_changed,
+                        self.last_input_time,
+                        now - self.last_input_time,
                     )
-                    .await
+                    .await?;
+            } else {
+                self.subscriber
+                    .non_idle(self.is_changed, self.last_input_time)
+                    .await?;
             };
-            self.is_changed = false;
-            result
         } else if self.is_idle {
-            trace!(
-                "Reporting as idle for {} seconds since {}",
-                (now - self.last_input_time).num_seconds(),
-                self.last_input_time.format("%Y-%m-%d %H:%M:%S"),
-            );
-            client
-                .ping(true, self.last_input_time, now - self.last_input_time)
-                .await
+            self.subscriber
+                .idle(
+                    self.is_changed,
+                    self.last_input_time,
+                    now - self.last_input_time,
+                )
+                .await?;
         } else {
-            trace!(
-                "Reporting as not idle at {}",
-                self.last_input_time.format("%Y-%m-%d %H:%M:%S")
-            );
-            client
-                .ping(false, self.last_input_time, TimeDelta::zero())
-                .await
+            self.subscriber
+                .non_idle(self.is_changed, self.last_input_time)
+                .await?;
         }
+        self.is_changed = false;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+    use chrono::Duration;
+    use mockall::mock;
+    use rstest::rstest;
+
+    mock! {
+        pub Subscriber {}
+        #[async_trait]
+        impl IdleSubscriber for Subscriber {
+            async fn idle(&self, changed: bool, last_input_time: DateTime<Utc>, duration: TimeDelta) -> anyhow::Result<()>;
+            async fn non_idle(&self, changed: bool, last_input_time: DateTime<Utc>) -> anyhow::Result<()>;
+        }
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_mark_not_idle() {
+        let subscriber = Arc::new(MockSubscriber::new());
+        let mut state = State::new(Duration::seconds(300), subscriber.clone());
+
+        state.mark_not_idle();
+        assert!(!state.is_idle);
+        assert!(state.is_changed);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_mark_idle() {
+        let subscriber = Arc::new(MockSubscriber::new());
+        let mut state = State::new(Duration::seconds(300), subscriber.clone());
+
+        state.mark_idle();
+        assert!(state.is_idle);
+        assert!(state.is_changed);
     }
 }

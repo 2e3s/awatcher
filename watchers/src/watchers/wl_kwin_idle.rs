@@ -2,6 +2,7 @@ use super::idle;
 use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
+use crate::subscriber::IdleSubscriber;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::TimeDelta;
@@ -29,10 +30,14 @@ impl Drop for WatcherState {
 }
 
 impl WatcherState {
-    fn new(kwin_idle_timeout: OrgKdeKwinIdleTimeout, idle_timeout: TimeDelta) -> Self {
+    fn new(
+        kwin_idle_timeout: OrgKdeKwinIdleTimeout,
+        idle_timeout: TimeDelta,
+        subscriber: Arc<dyn IdleSubscriber>,
+    ) -> Self {
         Self {
             kwin_idle_timeout,
-            idle_state: idle::State::new(idle_timeout),
+            idle_state: idle::State::new(idle_timeout, subscriber),
         }
     }
 
@@ -84,6 +89,7 @@ impl Watcher for IdleWatcher {
         let mut watcher_state = WatcherState::new(
             connection.get_kwin_idle_timeout(timeout.unwrap()).unwrap(),
             client.config.idle_timeout,
+            client.clone(),
         );
         connection
             .event_queue
@@ -96,12 +102,12 @@ impl Watcher for IdleWatcher {
         })
     }
 
-    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn run_iteration(&mut self, _: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
             .event_queue
             .roundtrip(&mut self.watcher_state)
             .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
 
-        self.watcher_state.idle_state.send_reactive(client).await
+        self.watcher_state.idle_state.send_reactive().await
     }
 }

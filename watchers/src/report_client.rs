@@ -1,5 +1,8 @@
+use crate::subscriber::IdleSubscriber;
+
 use super::config::Config;
 use anyhow::Context;
+use async_trait::async_trait;
 use aw_client_rust::{AwClient, Event as AwEvent};
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Map, Value};
@@ -149,5 +152,59 @@ impl ReportClient {
         Self::run_with_retries(request)
             .await
             .with_context(|| format!("Failed to create bucket {bucket_name}"))
+    }
+}
+
+#[async_trait]
+impl IdleSubscriber for ReportClient {
+    async fn idle(
+        &self,
+        changed: bool,
+        last_input_time: DateTime<Utc>,
+        duration: TimeDelta,
+    ) -> anyhow::Result<()> {
+        if changed {
+            debug!(
+                "Reporting as changed to idle for {} seconds since {}",
+                duration.num_seconds(),
+                last_input_time.format("%Y-%m-%d %H:%M:%S"),
+            );
+            self.ping(false, last_input_time, TimeDelta::zero()).await?;
+
+            // ping with timestamp+1ms with the next event (to ensure the latest event gets retrieved by get_event)
+            self.ping(true, last_input_time, duration + TimeDelta::milliseconds(1))
+                .await
+        } else {
+            trace!(
+                "Reporting as idle for {} seconds since {}",
+                duration.num_seconds(),
+                last_input_time.format("%Y-%m-%d %H:%M:%S"),
+            );
+            self.ping(true, last_input_time, duration).await
+        }
+    }
+
+    async fn non_idle(&self, changed: bool, last_input_time: DateTime<Utc>) -> anyhow::Result<()> {
+        if changed {
+            debug!(
+                "Reporting as no longer idle at {}",
+                last_input_time.format("%Y-%m-%d %H:%M:%S")
+            );
+
+            self.ping(true, last_input_time, TimeDelta::zero()).await?;
+
+            self.ping(
+                false,
+                last_input_time + TimeDelta::milliseconds(1),
+                TimeDelta::zero(),
+            )
+            .await
+        } else {
+            trace!(
+                "Reporting as not idle at {}",
+                last_input_time.format("%Y-%m-%d %H:%M:%S")
+            );
+            self.ping(false, last_input_time, TimeDelta::zero()).await
+        }
     }
 }

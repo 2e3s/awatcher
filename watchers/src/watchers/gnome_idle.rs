@@ -35,7 +35,7 @@ impl Watcher for IdleWatcher {
         load_watcher(|| async move {
             let mut watcher = Self {
                 dbus_connection: Connection::session().await?,
-                idle_state: idle::State::new(duration),
+                idle_state: idle::State::new(duration, client.clone()),
             };
             watcher.seconds_since_input().await?;
             Ok(watcher)
@@ -43,11 +43,9 @@ impl Watcher for IdleWatcher {
         .await
     }
 
-    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn run_iteration(&mut self, _: &Arc<ReportClient>) -> anyhow::Result<()> {
         let seconds = self.seconds_since_input().await?;
-        self.idle_state
-            .send_with_last_input(seconds, client)
-            .await?;
+        self.idle_state.send_with_last_input(seconds).await?;
 
         Ok(())
     }
