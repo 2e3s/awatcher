@@ -49,6 +49,10 @@ as soon as the environment has the necessary interfaces.
 | Wayland + KDE   | :yellow_circle: [^3] | :green_circle:      |
 | Wayland + Gnome | :yellow_circle: [^4] | :green_circle:      |
 
+> [!IMPORTANT]
+> Gnome watcher in Wayland requires [this extension](https://extensions.gnome.org/extension/5592/focused-window-d-bus/) to be installed.
+> Also, if you have problems with tray icons in Gnome, you may try [this extension](https://extensions.gnome.org/extension/615/appindicator-support/) for the bundle (StatusNotifierItem specification).
+
 [^1]: A few other DEs besides Sway may implement [wlr foreign toplevel protocol](https://wayland.app/protocols/wlr-foreign-toplevel-management-unstable-v1),
 [^2]: [KWin idle](https://wayland.app/protocols/kde-idle) and [Idle notify](https://wayland.app/protocols/ext-idle-notify-v1) protocols are supported.
 [^3]: KWin doesn't implement any toplevel protocol yet, KWin script is utilized instead (builtin, no actions required).
@@ -158,7 +162,5 @@ to build the "dist" folder,
 1. Build the executable with `AW_WEBUI_DIR=/absolute/path/to/dist` and `--features=bundle`.
 
 This should be compiled on nightly. The complete bundled version is also built and released.
-
-Gnome needs [the extension](https://extensions.gnome.org/extension/615/appindicator-support/) to support StatusNotifierItem specification.
 
 The tray can be disabled with `--no-tray` option in the bundled version.
