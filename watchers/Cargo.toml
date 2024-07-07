@@ -12,7 +12,6 @@ path = "src/lib.rs"
 [dev-dependencies]
 rstest = "0.21.0"
 tempfile = "3.10.1"
-mockall = "0.12.1"
 
 [dependencies]
 aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust", rev = "bb787fd" }

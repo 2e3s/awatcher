@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::Utc;
 
 use super::{idle, x11_connection::X11Client, Watcher};
 use crate::report_client::ReportClient;
@@ -6,7 +7,7 @@ use std::sync::Arc;
 
 pub struct IdleWatcher {
     client: X11Client,
-    idle_state: idle::State,
+    idle_state: idle::Tracker,
 }
 
 impl IdleWatcher {
@@ -25,14 +26,15 @@ impl Watcher for IdleWatcher {
 
         Ok(IdleWatcher {
             client,
-            idle_state: idle::State::new(report_client.config.idle_timeout, report_client.clone()),
+            idle_state: idle::Tracker::new(Utc::now(), report_client.config.idle_timeout),
         })
     }
 
-    async fn run_iteration(&mut self, _: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         let seconds = self.seconds_since_input().await?;
-        self.idle_state.send_with_last_input(seconds).await?;
 
-        Ok(())
+        client
+            .handle_idle_status(self.idle_state.get_with_last_input(Utc::now(), seconds)?)
+            .await
     }
 }

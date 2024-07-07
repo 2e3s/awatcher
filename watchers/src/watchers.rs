@@ -4,7 +4,7 @@ mod gnome_idle;
 mod gnome_wayland;
 #[cfg(feature = "gnome")]
 mod gnome_window;
-mod idle;
+pub mod idle;
 #[cfg(feature = "kwin_window")]
 mod kwin_window;
 mod wl_connection;

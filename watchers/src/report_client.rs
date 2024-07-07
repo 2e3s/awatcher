@@ -1,8 +1,7 @@
-use crate::subscriber::IdleSubscriber;
+use crate::watchers::idle::Status;
 
 use super::config::Config;
 use anyhow::Context;
-use async_trait::async_trait;
 use aw_client_rust::{AwClient, Event as AwEvent};
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Map, Value};
@@ -153,10 +152,21 @@ impl ReportClient {
             .await
             .with_context(|| format!("Failed to create bucket {bucket_name}"))
     }
-}
 
-#[async_trait]
-impl IdleSubscriber for ReportClient {
+    pub async fn handle_idle_status(&self, status: Status) -> anyhow::Result<()> {
+        match status {
+            Status::Idle {
+                changed,
+                last_input_time,
+                duration,
+            } => self.idle(changed, last_input_time, duration).await,
+            Status::Active {
+                changed,
+                last_input_time,
+            } => self.non_idle(changed, last_input_time).await,
+        }
+    }
+
     async fn idle(
         &self,
         changed: bool,
@@ -191,14 +201,14 @@ impl IdleSubscriber for ReportClient {
                 last_input_time.format("%Y-%m-%d %H:%M:%S")
             );
 
-            self.ping(true, last_input_time, TimeDelta::zero()).await?;
-
             self.ping(
-                false,
-                last_input_time + TimeDelta::milliseconds(1),
+                true,
+                last_input_time - TimeDelta::milliseconds(1),
                 TimeDelta::zero(),
             )
-            .await
+            .await?;
+
+            self.ping(false, last_input_time, TimeDelta::zero()).await
         } else {
             trace!(
                 "Reporting as not idle at {}",

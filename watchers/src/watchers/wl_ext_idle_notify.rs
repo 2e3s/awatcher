@@ -2,10 +2,9 @@ use super::idle;
 use super::wl_connection::{subscribe_state, WlEventConnection};
 use super::Watcher;
 use crate::report_client::ReportClient;
-use crate::subscriber::IdleSubscriber;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use chrono::TimeDelta;
+use chrono::{TimeDelta, Utc};
 use std::sync::Arc;
 use wayland_client::{
     globals::GlobalListContents,
@@ -18,7 +17,7 @@ use wayland_protocols::ext::idle_notify::v1::client::ext_idle_notifier_v1::ExtId
 
 struct WatcherState {
     idle_notification: ExtIdleNotificationV1,
-    idle_state: idle::State,
+    idle_state: idle::Tracker,
 }
 
 impl Drop for WatcherState {
@@ -29,25 +28,19 @@ impl Drop for WatcherState {
 }
 
 impl WatcherState {
-    fn new(
-        idle_notification: ExtIdleNotificationV1,
-        idle_timeout: TimeDelta,
-        subscriber: Arc<dyn IdleSubscriber>,
-    ) -> Self {
+    fn new(idle_notification: ExtIdleNotificationV1, idle_timeout: TimeDelta) -> Self {
         Self {
             idle_notification,
-            idle_state: idle::State::new(idle_timeout, subscriber),
+            idle_state: idle::Tracker::new(Utc::now(), idle_timeout),
         }
     }
 
     fn idle(&mut self) {
-        self.idle_state.mark_idle();
-        debug!("Idle");
+        self.idle_state.mark_idle(Utc::now());
     }
 
     fn resume(&mut self) {
-        self.idle_state.mark_not_idle();
-        debug!("Resumed");
+        self.idle_state.mark_not_idle(Utc::now());
     }
 }
 
@@ -90,7 +83,6 @@ impl Watcher for IdleWatcher {
                 .get_ext_idle_notification(timeout.unwrap())
                 .unwrap(),
             client.config.idle_timeout,
-            client.clone(),
         );
         connection
             .event_queue
@@ -103,12 +95,14 @@ impl Watcher for IdleWatcher {
         })
     }
 
-    async fn run_iteration(&mut self, _: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
             .event_queue
             .roundtrip(&mut self.watcher_state)
             .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
 
-        self.watcher_state.idle_state.send_reactive().await
+        client
+            .handle_idle_status(self.watcher_state.idle_state.get_reactive(Utc::now())?)
+            .await
     }
 }

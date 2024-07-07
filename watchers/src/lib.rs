@@ -3,7 +3,6 @@ extern crate log;
 
 pub mod config;
 mod report_client;
-mod subscriber;
 mod watchers;
 
 pub use crate::report_client::ReportClient;

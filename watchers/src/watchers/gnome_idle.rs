@@ -2,12 +2,13 @@ use super::{gnome_wayland::load_watcher, idle, Watcher};
 use crate::report_client::ReportClient;
 use anyhow::Context;
 use async_trait::async_trait;
+use chrono::Utc;
 use std::sync::Arc;
 use zbus::Connection;
 
 pub struct IdleWatcher {
     dbus_connection: Connection,
-    idle_state: idle::State,
+    idle_state: idle::Tracker,
 }
 
 impl IdleWatcher {
@@ -35,7 +36,7 @@ impl Watcher for IdleWatcher {
         load_watcher(|| async move {
             let mut watcher = Self {
                 dbus_connection: Connection::session().await?,
-                idle_state: idle::State::new(duration, client.clone()),
+                idle_state: idle::Tracker::new(Utc::now(), duration),
             };
             watcher.seconds_since_input().await?;
             Ok(watcher)
@@ -43,10 +44,10 @@ impl Watcher for IdleWatcher {
         .await
     }
 
-    async fn run_iteration(&mut self, _: &Arc<ReportClient>) -> anyhow::Result<()> {
+    async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         let seconds = self.seconds_since_input().await?;
-        self.idle_state.send_with_last_input(seconds).await?;
-
-        Ok(())
+        client
+            .handle_idle_status(self.idle_state.get_with_last_input(Utc::now(), seconds)?)
+            .await
     }
 }
