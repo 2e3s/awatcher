@@ -2,7 +2,7 @@
 Type=simple
 TimeoutStartSec=120
 ExecStartPre=/bin/sleep 5
-ExecStart=aw-awatcher
+ExecStart=awatcher
 Restart=always
 RestartSec=5
 RestartSteps=2
@@ -10,8 +10,7 @@ RestartMaxDelaySec=15
 
 [Unit]
 Description=AWatcher
-After=aw-server.service graphical-session.target
-Requires=aw-server.service
+After=graphical-session.target
 
 [Install]
 WantedBy=graphical-session.target
