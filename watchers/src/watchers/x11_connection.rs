@@ -67,33 +67,38 @@ impl X11Client {
         })
     }
 
-    pub fn active_window_data(&mut self) -> anyhow::Result<WindowData> {
+    pub fn active_window_data(&mut self) -> anyhow::Result<Option<WindowData>> {
         self.execute_with_reconnect(|client| {
-            let focus: Window = client.find_active_window()?;
+            let focus = client.find_active_window()?;
 
-            let name = client.get_property(
-                focus,
-                client.intern_atom("_NET_WM_NAME")?,
-                "_NET_WM_NAME",
-                client.intern_atom("UTF8_STRING")?,
-                u32::MAX,
-            )?;
-            let class = client.get_property(
-                focus,
-                AtomEnum::WM_CLASS.into(),
-                "WM_CLASS",
-                AtomEnum::STRING.into(),
-                u32::MAX,
-            )?;
+            match focus {
+                Some(window) => {
+                    let name = client.get_property(
+                        window,
+                        client.intern_atom("_NET_WM_NAME")?,
+                        "_NET_WM_NAME",
+                        client.intern_atom("UTF8_STRING")?,
+                        u32::MAX,
+                    )?;
+                    let class = client.get_property(
+                        window,
+                        AtomEnum::WM_CLASS.into(),
+                        "WM_CLASS",
+                        AtomEnum::STRING.into(),
+                        u32::MAX,
+                    )?;
 
-            let title = str::from_utf8(&name.value).with_context(|| "Invalid title UTF")?;
-            let (instance, class) = parse_wm_class(&class)?;
+                    let title = str::from_utf8(&name.value).with_context(|| "Invalid title UTF")?;
+                    let (instance, class) = parse_wm_class(&class)?;
 
-            Ok(WindowData {
-                title: title.to_string(),
-                app_id: class,
-                wm_instance: instance,
-            })
+                    Ok(Some(WindowData {
+                        title: title.to_string(),
+                        app_id: class,
+                        wm_instance: instance,
+                    }))
+                }
+                None => Ok(None),
+            }
         })
     }
 
@@ -122,7 +127,7 @@ impl X11Client {
             .atom)
     }
 
-    fn find_active_window(&self) -> anyhow::Result<Window> {
+    fn find_active_window(&self) -> anyhow::Result<Option<Window>> {
         let window: Atom = AtomEnum::WINDOW.into();
         let net_active_window = self.intern_atom("_NET_ACTIVE_WINDOW")?;
         let active_window = self.get_property(
@@ -134,20 +139,27 @@ impl X11Client {
         )?;
 
         if active_window.format == 32 && active_window.length == 1 {
-            active_window
+            let window_id = active_window
                 .value32()
                 .ok_or(anyhow!("Invalid message. Expected value with format = 32"))?
                 .next()
-                .ok_or(anyhow!("Active window is not found"))
+                .ok_or(anyhow!("Active window is not found"))?;
+
+            // Check if the window_id is 0 (no active window)
+            if window_id == 0 {
+                return Ok(None);
+            }
+
+            Ok(Some(window_id))
         } else {
             // Query the input focus
-            Ok(self
+            Ok(Some(self
                 .connection
                 .get_input_focus()
                 .with_context(|| "Failed to get input focus")?
                 .reply()
                 .with_context(|| "Failed to read input focus from reply")?
-                .focus)
+                .focus))
         }
     }
 }
