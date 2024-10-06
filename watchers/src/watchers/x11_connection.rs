@@ -9,6 +9,7 @@ use x11rb::rust_connection::RustConnection;
 pub struct WindowData {
     pub title: String,
     pub app_id: String,
+    pub wm_instance: String,
 }
 
 pub struct X11Client {
@@ -86,10 +87,12 @@ impl X11Client {
             )?;
 
             let title = str::from_utf8(&name.value).with_context(|| "Invalid title UTF")?;
+            let (instance, class) = parse_wm_class(&class)?;
 
             Ok(WindowData {
                 title: title.to_string(),
-                app_id: parse_wm_class(&class)?.to_string(),
+                app_id: class,
+                wm_instance: instance,
             })
         })
     }
@@ -149,21 +152,26 @@ impl X11Client {
     }
 }
 
-fn parse_wm_class(property: &GetPropertyReply) -> anyhow::Result<&str> {
+fn parse_wm_class(property: &GetPropertyReply) -> anyhow::Result<(String, String)> {
     if property.format != 8 {
         bail!("Malformed property: wrong format");
     }
     let value = &property.value;
     // The property should contain two null-terminated strings. Find them.
     if let Some(middle) = value.iter().position(|&b| b == 0) {
-        let (_, class) = value.split_at(middle);
-        // Skip the null byte at the beginning
+        let (instance, class) = value.split_at(middle);
+        // Remove the null byte at the end of the instance
+        let instance = &instance[..instance.len()];
+        // Skip the null byte at the beginning of the class
         let mut class = &class[1..];
         // Remove the last null byte from the class, if it is there.
         if class.last() == Some(&0) {
             class = &class[..class.len() - 1];
         }
-        Ok(std::str::from_utf8(class)?)
+        Ok((
+            std::str::from_utf8(instance)?.to_string(),
+            std::str::from_utf8(class)?.to_string(),
+        ))
     } else {
         bail!("Missing null byte")
     }
