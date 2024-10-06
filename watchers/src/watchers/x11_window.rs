@@ -32,6 +32,10 @@ impl WindowWatcher {
                 r#"Changed window app_id="{}", title="{}", wm_instance="{}""#,
                 app_id, title, wm_instance
             );
+            client
+                .send_active_window_with_instance(&self.last_app_id, &self.last_title, Some(&self.last_wm_instance))
+                .await
+                .with_context(|| "Failed to send heartbeat for previous window")?;
             self.last_app_id = app_id.clone();
             self.last_title = title.clone();
             self.last_wm_instance = wm_instance.clone();

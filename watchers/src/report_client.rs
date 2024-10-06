@@ -41,18 +41,18 @@ impl ReportClient {
         Fut: Future<Output = Result<T, E>>,
         E: std::error::Error + Send + Sync + 'static,
     {
-        for (attempt, &secs) in [1, 2].iter().enumerate() {
+        for (attempt, secs) in [0.01, 0.1, 1., 2.].iter().enumerate() {
             match f().await {
-                Ok(val) => return Ok(val),
-                Err(e)
-                    if e.to_string()
-                        .contains("tcp connect error: Connection refused") =>
-                {
-                    warn!("Failed to connect on attempt #{attempt}, retrying: {}", e);
-
-                    tokio::time::sleep(tokio::time::Duration::from_secs(secs)).await;
+                Ok(val) => {
+                    if attempt > 0 {
+                        debug!("OK at attempt #{}", attempt + 1);
+                    }
+                    return Ok(val);
                 }
-                Err(e) => return Err(e),
+                Err(e) => {
+                    warn!("Failed on attempt #{}, retrying in {:.1}s: {}", attempt + 1, secs, e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs_f64(*secs)).await;
+                }
             }
         }
 
