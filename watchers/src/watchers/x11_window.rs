@@ -6,25 +6,44 @@ use std::sync::Arc;
 
 pub struct WindowWatcher {
     client: X11Client,
-    last_title: String,
     last_app_id: String,
+    last_title: String,
+    last_wm_instance: String,
 }
 
 impl WindowWatcher {
     async fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
         let data = self.client.active_window_data()?;
 
-        if data.app_id != self.last_app_id || data.title != self.last_title {
+        let (app_id, title, wm_instance) = match data {
+            Some(window_data) => (
+                window_data.app_id,
+                window_data.title,
+                window_data.wm_instance,
+            ),
+            None => {
+                // No active window, set all values to "aw-none"
+                ("aw-none".to_string(), "aw-none".to_string(), "aw-none".to_string())
+            }
+        };
+
+        if app_id != self.last_app_id || title != self.last_title || wm_instance != self.last_wm_instance {
             debug!(
-                r#"Changed window app_id="{}", title="{}""#,
-                data.app_id, data.title
+                r#"Changed window app_id="{}", title="{}", wm_instance="{}""#,
+                app_id, title, wm_instance
             );
-            self.last_app_id = data.app_id;
-            self.last_title = data.title;
+            client
+                .send_active_window_with_instance(&self.last_app_id, &self.last_title, Some(&self.last_wm_instance))
+                .await
+                .with_context(|| "Failed to send heartbeat for previous window")?;
+            self.last_app_id = app_id.clone();
+            self.last_title = title.clone();
+            self.last_wm_instance = wm_instance.clone();
+
         }
 
         client
-            .send_active_window(&self.last_app_id, &self.last_title)
+            .send_active_window_with_instance(&app_id, &title, Some(&wm_instance))
             .await
             .with_context(|| "Failed to send heartbeat for active window")
     }
@@ -40,6 +59,7 @@ impl Watcher for WindowWatcher {
             client,
             last_title: String::new(),
             last_app_id: String::new(),
+            last_wm_instance: String::new(),
         })
     }
 

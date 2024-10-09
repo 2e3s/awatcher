@@ -41,18 +41,18 @@ impl ReportClient {
         Fut: Future<Output = Result<T, E>>,
         E: std::error::Error + Send + Sync + 'static,
     {
-        for (attempt, &secs) in [1, 2].iter().enumerate() {
+        for (attempt, secs) in [0.01, 0.1, 1., 2.].iter().enumerate() {
             match f().await {
-                Ok(val) => return Ok(val),
-                Err(e)
-                    if e.to_string()
-                        .contains("tcp connect error: Connection refused") =>
-                {
-                    warn!("Failed to connect on attempt #{attempt}, retrying: {}", e);
-
-                    tokio::time::sleep(tokio::time::Duration::from_secs(secs)).await;
+                Ok(val) => {
+                    if attempt > 0 {
+                        debug!("OK at attempt #{}", attempt + 1);
+                    }
+                    return Ok(val);
                 }
-                Err(e) => return Err(e),
+                Err(e) => {
+                    warn!("Failed on attempt #{}, retrying in {:.1}s: {}", attempt + 1, secs, e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs_f64(*secs)).await;
+                }
             }
         }
 
@@ -94,6 +94,15 @@ impl ReportClient {
     }
 
     pub async fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
+        self.send_active_window_with_instance(app_id, title, None).await
+    }
+
+    pub async fn send_active_window_with_instance(
+        &self,
+        app_id: &str,
+        title: &str,
+        wm_instance: Option<&str>,
+    ) -> anyhow::Result<()> {
         let mut data = Map::new();
 
         let replacement = self.config.window_data_replacement(app_id, title);
@@ -116,6 +125,11 @@ impl ReportClient {
         );
         data.insert("app".to_string(), Value::String(inserted_app_id));
         data.insert("title".to_string(), Value::String(inserted_title));
+
+        if let Some(instance) = wm_instance {
+            data.insert("wm_instance".to_string(), Value::String(instance.to_string()));
+        }
+
         let event = AwEvent {
             id: None,
             timestamp: Utc::now(),
