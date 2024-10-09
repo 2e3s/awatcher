@@ -94,6 +94,15 @@ impl ReportClient {
     }
 
     pub async fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
+        self.send_active_window_with_instance(app_id, title, None).await
+    }
+
+    pub async fn send_active_window_with_instance(
+        &self,
+        app_id: &str,
+        title: &str,
+        wm_instance: Option<&str>,
+    ) -> anyhow::Result<()> {
         let mut data = Map::new();
 
         let replacement = self.config.window_data_replacement(app_id, title);
@@ -116,6 +125,11 @@ impl ReportClient {
         );
         data.insert("app".to_string(), Value::String(inserted_app_id));
         data.insert("title".to_string(), Value::String(inserted_title));
+
+        if let Some(instance) = wm_instance {
+            data.insert("wm_instance".to_string(), Value::String(instance.to_string()));
+        }
+
         let event = AwEvent {
             id: None,
             timestamp: Utc::now(),

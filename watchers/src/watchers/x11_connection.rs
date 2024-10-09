@@ -9,6 +9,7 @@ use x11rb::rust_connection::RustConnection;
 pub struct WindowData {
     pub title: String,
     pub app_id: String,
+    pub wm_instance: String,
 }
 
 pub struct X11Client {
@@ -66,31 +67,38 @@ impl X11Client {
         })
     }
 
-    pub fn active_window_data(&mut self) -> anyhow::Result<WindowData> {
+    pub fn active_window_data(&mut self) -> anyhow::Result<Option<WindowData>> {
         self.execute_with_reconnect(|client| {
-            let focus: Window = client.find_active_window()?;
+            let focus = client.find_active_window()?;
 
-            let name = client.get_property(
-                focus,
-                client.intern_atom("_NET_WM_NAME")?,
-                "_NET_WM_NAME",
-                client.intern_atom("UTF8_STRING")?,
-                u32::MAX,
-            )?;
-            let class = client.get_property(
-                focus,
-                AtomEnum::WM_CLASS.into(),
-                "WM_CLASS",
-                AtomEnum::STRING.into(),
-                u32::MAX,
-            )?;
+            match focus {
+                Some(window) => {
+                    let name = client.get_property(
+                        window,
+                        client.intern_atom("_NET_WM_NAME")?,
+                        "_NET_WM_NAME",
+                        client.intern_atom("UTF8_STRING")?,
+                        u32::MAX,
+                    )?;
+                    let class = client.get_property(
+                        window,
+                        AtomEnum::WM_CLASS.into(),
+                        "WM_CLASS",
+                        AtomEnum::STRING.into(),
+                        u32::MAX,
+                    )?;
 
-            let title = str::from_utf8(&name.value).with_context(|| "Invalid title UTF")?;
+                    let title = str::from_utf8(&name.value).with_context(|| "Invalid title UTF")?;
+                    let (instance, class) = parse_wm_class(&class)?;
 
-            Ok(WindowData {
-                title: title.to_string(),
-                app_id: parse_wm_class(&class)?.to_string(),
-            })
+                    Ok(Some(WindowData {
+                        title: title.to_string(),
+                        app_id: class,
+                        wm_instance: instance,
+                    }))
+                }
+                None => Ok(None),
+            }
         })
     }
 
@@ -119,7 +127,7 @@ impl X11Client {
             .atom)
     }
 
-    fn find_active_window(&self) -> anyhow::Result<Window> {
+    fn find_active_window(&self) -> anyhow::Result<Option<Window>> {
         let window: Atom = AtomEnum::WINDOW.into();
         let net_active_window = self.intern_atom("_NET_ACTIVE_WINDOW")?;
         let active_window = self.get_property(
@@ -131,39 +139,51 @@ impl X11Client {
         )?;
 
         if active_window.format == 32 && active_window.length == 1 {
-            active_window
+            let window_id = active_window
                 .value32()
                 .ok_or(anyhow!("Invalid message. Expected value with format = 32"))?
                 .next()
-                .ok_or(anyhow!("Active window is not found"))
+                .ok_or(anyhow!("Active window is not found"))?;
+
+            // Check if the window_id is 0 (no active window)
+            if window_id == 0 {
+                return Ok(None);
+            }
+
+            Ok(Some(window_id))
         } else {
             // Query the input focus
-            Ok(self
+            Ok(Some(self
                 .connection
                 .get_input_focus()
                 .with_context(|| "Failed to get input focus")?
                 .reply()
                 .with_context(|| "Failed to read input focus from reply")?
-                .focus)
+                .focus))
         }
     }
 }
 
-fn parse_wm_class(property: &GetPropertyReply) -> anyhow::Result<&str> {
+fn parse_wm_class(property: &GetPropertyReply) -> anyhow::Result<(String, String)> {
     if property.format != 8 {
         bail!("Malformed property: wrong format");
     }
     let value = &property.value;
     // The property should contain two null-terminated strings. Find them.
     if let Some(middle) = value.iter().position(|&b| b == 0) {
-        let (_, class) = value.split_at(middle);
-        // Skip the null byte at the beginning
+        let (instance, class) = value.split_at(middle);
+        // Remove the null byte at the end of the instance
+        let instance = &instance[..instance.len()];
+        // Skip the null byte at the beginning of the class
         let mut class = &class[1..];
         // Remove the last null byte from the class, if it is there.
         if class.last() == Some(&0) {
             class = &class[..class.len() - 1];
         }
-        Ok(std::str::from_utf8(class)?)
+        Ok((
+            std::str::from_utf8(instance)?.to_string(),
+            std::str::from_utf8(class)?.to_string(),
+        ))
     } else {
         bail!("Missing null byte")
     }
