@@ -7,6 +7,7 @@ use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Map, Value};
 use std::error::Error;
 use std::future::Future;
+use std::collections::HashMap;
 
 pub struct ReportClient {
     pub client: AwClient,
@@ -94,14 +95,14 @@ impl ReportClient {
     }
 
     pub async fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
-        self.send_active_window_with_instance(app_id, title, None).await
+        self.send_active_window_with_extra(app_id, title, None).await
     }
 
-    pub async fn send_active_window_with_instance(
+    pub async fn send_active_window_with_extra(
         &self,
         app_id: &str,
         title: &str,
-        wm_instance: Option<&str>,
+        extra_data: Option<HashMap<String, String>>,
     ) -> anyhow::Result<()> {
         let mut data = Map::new();
 
@@ -126,8 +127,10 @@ impl ReportClient {
         data.insert("app".to_string(), Value::String(inserted_app_id));
         data.insert("title".to_string(), Value::String(inserted_title));
 
-        if let Some(instance) = wm_instance {
-            data.insert("wm_instance".to_string(), Value::String(instance.to_string()));
+        if let Some(extra) = extra_data {
+            for (key, value) in extra {
+                data.insert(key, Value::String(value));
+            }
         }
 
         let event = AwEvent {

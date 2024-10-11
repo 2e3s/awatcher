@@ -3,6 +3,7 @@ use crate::report_client::ReportClient;
 use anyhow::Context;
 use async_trait::async_trait;
 use std::sync::Arc;
+use std::collections::HashMap;
 
 pub struct WindowWatcher {
     client: X11Client,
@@ -12,6 +13,18 @@ pub struct WindowWatcher {
 }
 
 impl WindowWatcher {
+    pub async fn send_active_window_with_instance(
+        &self,
+        client: &ReportClient,
+        app_id: &str,
+        title: &str,
+        wm_instance: &str,
+    ) -> anyhow::Result<()> {
+        let mut extra_data = HashMap::new();
+        extra_data.insert("wm_instance".to_string(), wm_instance.to_string());
+        client.send_active_window_with_extra(app_id, title, Some(extra_data)).await
+    }
+
     async fn send_active_window(&mut self, client: &ReportClient) -> anyhow::Result<()> {
         let data = self.client.active_window_data()?;
 
@@ -25,8 +38,8 @@ impl WindowWatcher {
             self.last_wm_instance = data.wm_instance.clone();
         }
 
-        client
-            .send_active_window_with_instance(&self.last_app_id, &self.last_title, Some(&self.last_wm_instance))
+        self
+            .send_active_window_with_instance(client, &self.last_app_id, &self.last_title, &self.last_wm_instance)
             .await
             .with_context(|| "Failed to send heartbeat for active window")
     }
