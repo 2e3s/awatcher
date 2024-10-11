@@ -289,9 +289,12 @@ mod tests {
         assert_eq!(manager.path_watchers[0].name(), "aw-test");
         assert!(manager.path_watchers[0].handle.is_none()); // no starting in config
 
-        assert!(manager.start_watcher(&temp_dir.path().join("aw-test")));
+        let watcher_path = &temp_dir.path().join("aw-test");
+        assert!(manager.start_watcher(watcher_path));
         assert!(manager.path_watchers[0].handle.is_some());
         assert_autostart_content(&manager, &["aw-test"]);
+
+        manager.stop_watcher(watcher_path);
     }
 
     fn assert_autostart_content(manager: &Manager, watchers: &[&str]) {

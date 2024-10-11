@@ -31,6 +31,13 @@ where
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum FilterResult {
+    Replace(Replacement),
+    Match,
+    Skip,
+}
+
 #[derive(Default, Debug, PartialEq)]
 pub struct Replacement {
     pub replace_app_id: Option<String>,
@@ -39,10 +46,7 @@ pub struct Replacement {
 
 impl Filter {
     fn is_valid(&self) -> bool {
-        let is_match_set = self.match_app_id.is_some() || self.match_title.is_some();
-        let is_replacement_set = self.replace_app_id.is_some() || self.replace_title.is_some();
-
-        is_match_set && is_replacement_set
+        self.match_app_id.is_some() || self.match_title.is_some()
     }
 
     fn is_match(&self, app_id: &str, title: &str) -> bool {
@@ -70,9 +74,12 @@ impl Filter {
         replacement.to_owned()
     }
 
-    pub fn replacement(&self, app_id: &str, title: &str) -> Option<Replacement> {
+    pub fn apply(&self, app_id: &str, title: &str) -> FilterResult {
         if !self.is_valid() || !self.is_match(app_id, title) {
-            return None;
+            return FilterResult::Skip;
+        }
+        if self.replace_app_id.is_none() && self.replace_title.is_none() {
+            return FilterResult::Match;
         }
 
         let mut replacement = Replacement::default();
@@ -83,7 +90,7 @@ impl Filter {
         if let Some(new_title) = &self.replace_title {
             replacement.replace_title = Some(Self::replace(&self.match_title, title, new_title));
         }
-        Some(replacement)
+        FilterResult::Replace(replacement)
     }
 }
 
@@ -141,6 +148,12 @@ mod tests {
         ("org.kde.dolphin", "/home/user"),
         None
     )]
+    #[case::match_only(
+        (Some("org\\.kde\\.(.*)"), None),
+        (None, None),
+        ("org.kde.dolphin", "/home/user"),
+        Some((None, None))
+    )]
     fn replacement(
         #[case] matches: (Option<&str>, Option<&str>),
         #[case] replaces: (Option<&str>, Option<&str>),
@@ -159,11 +172,15 @@ mod tests {
             replace_title: replace_title.map(option_string),
         };
 
-        let replacement = filter.replacement(app_id, title);
-        let expect_replacement = expect_replacement.map(|r| Replacement {
-            replace_app_id: r.0.map(option_string),
-            replace_title: r.1.map(option_string),
-        });
+        let replacement = filter.apply(app_id, title);
+        let expect_replacement = match expect_replacement {
+            None => FilterResult::Skip,
+            Some((None, None)) => FilterResult::Match,
+            Some((replace_app_id, replace_title)) => FilterResult::Replace(Replacement {
+                replace_app_id: replace_app_id.map(Into::into),
+                replace_title: replace_title.map(Into::into),
+            }),
+        };
         assert_eq!(expect_replacement, replacement);
     }
 }

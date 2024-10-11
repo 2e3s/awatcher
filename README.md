@@ -101,7 +101,8 @@ Copy the section as many times as needed for every given filter.
   - `replace-title` replaces the window title with the provided value.
 
 The first matching filter stops the replacement.
-There should be at least 1 match field, and at least 1 replace field for a valid filter.
+There should be at least 1 match field for a filter to be valid.
+If the replacement is not specified, the data is not reported when matched.
 Matches are case sensitive regular expressions between implicit ^ and $:
 - `.` matches 1 any character
 - `.*` matches any number of any characters
