@@ -2,9 +2,10 @@ pub mod defaults;
 mod file_config;
 mod filters;
 
-use self::filters::{Filter, Replacement};
+use self::filters::Filter;
 use chrono::Duration;
 pub use file_config::FileConfig;
+pub use filters::FilterResult;
 
 pub struct Config {
     pub port: u16,
@@ -17,13 +18,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn window_data_replacement(&self, app_id: &str, title: &str) -> Replacement {
+    pub fn match_window_data(&self, app_id: &str, title: &str) -> FilterResult {
         for filter in &self.filters {
-            if let Some(replacement) = filter.replacement(app_id, title) {
-                return replacement;
+            let result = filter.apply(app_id, title);
+            if matches!(result, FilterResult::Match | FilterResult::Replace(_)) {
+                return result;
             }
         }
 
-        Replacement::default()
+        FilterResult::Skip
     }
 }

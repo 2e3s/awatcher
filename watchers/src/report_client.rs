@@ -1,6 +1,5 @@
+use super::config::{Config, FilterResult};
 use crate::watchers::idle::Status;
-
-use super::config::Config;
 use anyhow::Context;
 use aw_client_rust::{AwClient, Event as AwEvent};
 use chrono::{DateTime, TimeDelta, Utc};
@@ -106,31 +105,23 @@ impl ReportClient {
     ) -> anyhow::Result<()> {
         let mut data = Map::new();
 
-        let replacement = self.config.window_data_replacement(app_id, title);
-        let inserted_app_id = if let Some(new_app_id) = replacement.replace_app_id {
-            trace!("Replacing app_id by {new_app_id}");
-            new_app_id
-        } else {
-            app_id.to_string()
-        };
-        let inserted_title = if let Some(new_title) = replacement.replace_title {
-            trace!("Replacing title of {inserted_app_id} by {new_title}");
-            new_title
-        } else {
-            title.to_string()
-        };
-        trace!(
-            "Reporting app_id: {}, title: {}",
-            inserted_app_id,
-            inserted_title
-        );
-        data.insert("app".to_string(), Value::String(inserted_app_id));
-        data.insert("title".to_string(), Value::String(inserted_title));
+        if let Some((inserted_app_id, inserted_title)) = self.get_filtered_data(app_id, title) {
+            trace!(
+                "Reporting app_id: {}, title: {}",
+                inserted_app_id,
+                inserted_title
+            );
 
-        if let Some(extra) = extra_data {
-            for (key, value) in extra {
-                data.insert(key, Value::String(value));
+            data.insert("app".to_string(), Value::String(inserted_app_id));
+            data.insert("title".to_string(), Value::String(inserted_title));
+
+            if let Some(extra) = extra_data {
+                for (key, value) in extra {
+                    data.insert(key, Value::String(value));
+                }
             }
+        } else {
+            return Ok(());
         }
 
         let event = AwEvent {
@@ -156,6 +147,33 @@ impl ReportClient {
         Self::run_with_retries(request)
             .await
             .with_context(|| "Failed to send heartbeat for active window")
+    }
+
+    fn get_filtered_data(&self, app_id: &str, title: &str) -> Option<(String, String)> {
+        let filter_result = self.config.match_window_data(app_id, title);
+        match filter_result {
+            FilterResult::Replace(replacement) => {
+                let app_id = if let Some(replace_app_id) = replacement.replace_app_id {
+                    trace!("Replacing app_id by {}", replace_app_id);
+                    replace_app_id
+                } else {
+                    app_id.to_string()
+                };
+                let title = if let Some(replace_title) = replacement.replace_title {
+                    trace!("Replacing title by {}", replace_title);
+                    replace_title
+                } else {
+                    title.to_string()
+                };
+
+                Some((app_id, title))
+            }
+            FilterResult::Match => {
+                trace!("Matched a filter, not reported");
+                None
+            }
+            FilterResult::Skip => Some((app_id.to_string(), title.to_string())),
+        }
     }
 
     async fn create_bucket(

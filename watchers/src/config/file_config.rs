@@ -147,6 +147,8 @@ impl FileConfig {
 
 #[cfg(test)]
 mod tests {
+    use crate::config::FilterResult;
+
     use super::*;
     use rstest::rstest;
     use std::io::Write;
@@ -192,16 +194,37 @@ replace-title = "Title"
         assert_eq!(12, config.client.poll_time_window_seconds);
 
         assert_eq!(2, config.client.filters.len());
-        let replacement1 = config.client.filters[0]
-            .replacement("firefox", "any")
-            .unwrap();
-        assert_eq!(None, replacement1.replace_app_id);
-        assert_eq!(Some("Unknown".to_string()), replacement1.replace_title);
-        let replacement2 = config.client.filters[1]
-            .replacement("code", "title")
-            .unwrap();
-        assert_eq!(Some("VSCode".to_string()), replacement2.replace_app_id);
-        assert_eq!(Some("Title".to_string()), replacement2.replace_title);
+
+        let replacement1 = config.client.filters[0].apply("firefox", "any");
+        assert!(matches!(replacement1, FilterResult::Replace(ref r) if
+            r.replace_app_id.is_none() &&
+            r.replace_title == Some("Unknown".to_string())
+        ));
+
+        let replacement2 = config.client.filters[1].apply("code", "title");
+        assert!(matches!(replacement2, FilterResult::Replace(ref r) if
+            r.replace_app_id == Some("VSCode".to_string()) &&
+            r.replace_title == Some("Title".to_string())
+        ));
+    }
+
+    #[rstest]
+    fn match_filter() {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(
+            file,
+            r#"
+[[awatcher.filters]]
+match-app-id = "firefox"
+        "#
+        )
+        .unwrap();
+
+        let config = FileConfig::new(Some(file.path().to_path_buf())).unwrap();
+
+        assert_eq!(1, config.client.filters.len());
+        let replacement1 = config.client.filters[0].apply("firefox", "any");
+        assert!(matches!(replacement1, FilterResult::Match));
     }
 
     #[rstest]

@@ -21,20 +21,20 @@ members = ["watchers"]
 version = "0.3.0"
 
 [workspace.dependencies]
-anyhow = "1.0.83"
+anyhow = "1.0.89"
 log = { version = "0.4.21", features = ["std"] }
 tokio = { version = "1.37.0" }
 serde = "1.0.202"
 
 [dev-dependencies]
-rstest = "0.21.0"
+rstest = "0.23.0"
 tempfile = "3.10.1"
 
 [dependencies]
 watchers = { path = "./watchers", default-features = false }
 chrono = "0.4.38"
 toml = "0.8.13"
-clap = { version = "4.5.4", features = ["string"] }
+clap = { version = "4.5.20", features = ["string"] }
 fern = { version = "0.6.2", features = ["colored"] }
 log = { workspace = true }
 anyhow = { workspace = true }
