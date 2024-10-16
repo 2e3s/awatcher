@@ -4,6 +4,7 @@ use anyhow::Context;
 use aw_client_rust::{AwClient, Event as AwEvent};
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Map, Value};
+use std::collections::HashMap;
 use std::error::Error;
 use std::future::Future;
 
@@ -93,6 +94,16 @@ impl ReportClient {
     }
 
     pub async fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
+        self.send_active_window_with_extra(app_id, title, None)
+            .await
+    }
+
+    pub async fn send_active_window_with_extra(
+        &self,
+        app_id: &str,
+        title: &str,
+        extra_data: Option<HashMap<String, String>>,
+    ) -> anyhow::Result<()> {
         let mut data = Map::new();
 
         if let Some((inserted_app_id, inserted_title)) = self.get_filtered_data(app_id, title) {
@@ -104,6 +115,12 @@ impl ReportClient {
 
             data.insert("app".to_string(), Value::String(inserted_app_id));
             data.insert("title".to_string(), Value::String(inserted_title));
+
+            if let Some(extra) = extra_data {
+                for (key, value) in extra {
+                    data.insert(key, Value::String(value));
+                }
+            }
         } else {
             return Ok(());
         }
