@@ -13,7 +13,7 @@ use std::sync::{mpsc::channel, Arc};
 use std::thread;
 use tokio::sync::Mutex;
 use zbus::interface;
-use zbus::{Connection, ConnectionBuilder};
+use zbus::{Connection, conn::Builder as ConnectionBuilder};
 
 const KWIN_SCRIPT_NAME: &str = "activity_watcher";
 const KWIN_SCRIPT: &str = include_str!("kwin_window.js");
