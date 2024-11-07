@@ -78,6 +78,10 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
                 .short('v')
                 .help("Verbosity level: -v for warnings, -vv for info, -vvv for debug, -vvvv for trace")
                 .action(ArgAction::Count),
+            #[cfg(not(feature = "bundle"))]
+            arg!(--"testing" "Use the testing port instead")
+                .value_parser(value_parser!(bool))
+                .action(ArgAction::SetTrue),
         ])
         .get_matches();
 
@@ -94,7 +98,10 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
 
     Ok(RunnerConfig {
         watchers_config: Config {
+            #[cfg(feature = "bundle")]
             port: config.server.port,
+            #[cfg(not(feature = "bundle"))]
+            port: if *matches.get_one("testing").unwrap() { 5666 } else { config.server.port },
             host: config.server.host,
             idle_timeout: config.client.get_idle_timeout(),
             poll_time_idle: config.client.get_poll_time_idle(),
