@@ -12,19 +12,19 @@ name = "awatcher"
 path = "src/main.rs"
 
 [build-dependencies]
-image = { version = "0.25.4" }
+image = { version = "0.25.5" }
 
 [workspace]
 members = ["watchers"]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 
 [workspace.dependencies]
-anyhow = "1.0.90"
+anyhow = "1.0.93"
 log = { version = "0.4.22", features = ["std"] }
-tokio = { version = "1.40.0" }
-serde = "1.0.210"
+tokio = { version = "1.41.1" }
+serde = "1.0.214"
 
 [dev-dependencies]
 rstest = "0.23.0"
@@ -35,14 +35,14 @@ watchers = { path = "./watchers", default-features = false }
 chrono = "0.4.38"
 toml = "0.8.19"
 clap = { version = "4.5.20", features = ["string"] }
-fern = { version = "0.6.2", features = ["colored"] }
+fern = { version = "0.7.0", features = ["colored"] }
 log = { workspace = true }
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "signal"] }
 
 ksni = {version = "0.2.2", optional = true}
-aw-server = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "bb787fd" }
-aw-datastore = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "bb787fd" }
+aw-server = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "656f3c9" }
+aw-datastore = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "656f3c9" }
 open = { version = "5.3.0", optional = true }
 serde = { workspace = true, optional = true }
 
