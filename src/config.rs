@@ -52,7 +52,7 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
         .args([
             arg!(-c --config <FILE> "Custom config file").value_parser(value_parser!(PathBuf)),
             arg!(--port <PORT> "Custom server port")
-                .value_parser(value_parser!(u32))
+                .value_parser(value_parser!(u16))
                 .default_value(defaults::port().to_string()),
             #[cfg(not(feature = "bundle"))]
             arg!(--host <HOST> "Custom server host")
