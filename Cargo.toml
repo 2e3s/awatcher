@@ -5,7 +5,6 @@ version = { workspace = true }
 authors = ["Demmie <2e3s19@gmail.com>"]
 edition = "2021"
 license = "Mozilla Public License 2.0"
-license-file = "LICENSE"
 repository = "https://github.com/2e3s/awatcher"
 
 [[bin]]
@@ -22,21 +21,21 @@ members = ["watchers"]
 version = "0.3.1"
 
 [workspace.dependencies]
-anyhow = "1.0.93"
+anyhow = "1.0.95"
 log = { version = "0.4.22", features = ["std"] }
-tokio = { version = "1.41.1" }
-serde = "1.0.214"
+tokio = { version = "1.42.0" }
+serde = "1.0.216"
 
 [dev-dependencies]
 rstest = "0.23.0"
-tempfile = "3.13.0"
+tempfile = "3.14.0"
 
 [dependencies]
 watchers = { path = "./watchers", default-features = false }
-chrono = "0.4.38"
+chrono = "0.4.39"
 toml = "0.8.19"
-clap = { version = "4.5.20", features = ["string"] }
-fern = { version = "0.7.0", features = ["colored"] }
+clap = { version = "4.5.23", features = ["string"] }
+fern = { version = "0.7.1", features = ["colored"] }
 log = { workspace = true }
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "signal"] }
@@ -44,7 +43,7 @@ tokio = { workspace = true, features = ["rt", "macros", "signal"] }
 ksni = {version = "0.2.2", optional = true}
 aw-server = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "656f3c9" }
 aw-datastore = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "656f3c9" }
-open = { version = "5.3.0", optional = true }
+open = { version = "5.3.1", optional = true }
 serde = { workspace = true, optional = true }
 
 [features]
