@@ -4,6 +4,7 @@ description = "An activity and idle watcher based on ActivityWatch"
 version = { workspace = true }
 authors = ["Demmie <2e3s19@gmail.com>"]
 edition = "2021"
+license = "Mozilla Public License 2.0"
 license-file = "LICENSE"
 repository = "https://github.com/2e3s/awatcher"
 
@@ -79,3 +80,22 @@ assets = [
     ["README.md", "usr/share/doc/awatcher/README", "644"],
 ]
 conflicts = "aw-awatcher"
+
+[package.metadata.generate-rpm.variants.module]
+name = "aw-awatcher"
+assets = [
+    { source = "target/release/awatcher", dest = "/usr/bin/aw-awatcher", mode = "755" },
+]
+
+[package.metadata.generate-rpm.variants.module.conflicts]
+awatcher = "*"
+
+[package.metadata.generate-rpm.variants.bundle]
+assets = [
+    { source = "target/release/awatcher", dest = "/usr/bin/awatcher", mode = "755" },
+    { source = "src/bundle/awatcher.desktop", dest = "/usr/share/applications/", mode = "644" },
+    { source = "src/bundle/logo.png", dest = "/usr/share/awatcher/icons/awatcher.png", mode = "644" },
+]
+
+[package.metadata.generate-rpm.variants.bundle.conflicts]
+aw-awatcher = "*"

@@ -24,8 +24,8 @@ jobs:
           sudo apt-get install libdbus-1-dev -y
           sudo apt-get install libssl-dev -y
           sudo apt-get install pkg-config -y
-      - name: install cargo-deb
-        run: cargo install cargo-deb
+      - run: cargo install cargo-deb
+      - run: cargo install cargo-generate-rpm
 
       # Build aw-webui
       - name: Checkout aw-webui
@@ -81,10 +81,11 @@ jobs:
           file_glob: true
           file: target/debian/awatcher*.deb
 
-      - run: cargo deb --variant=module
-      - name: Upload module deb to release
+      - run: cargo generate-rpm --variant=bundle
+      - run: cargo generate-rpm --variant=module
+      - name: Upload bundle RPM to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file_glob: true
-          file: target/debian/aw-awatcher*.deb
+          file: target/generate-rpm/*.rpm
