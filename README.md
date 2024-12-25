@@ -10,13 +10,14 @@ The foundation is [ActivityWatch](https://github.com/ActivityWatch), which inclu
 The unbundled watcher is supposed to replace the original idle and active window watchers from the original distribution.
 The bundled executable can be used independently as it contains the server, UI and tray.
 
-The binaries for the bundle, bundled DEB and ActivityWatch watchers replacement can be downloaded from
+The binaries for the bundle, bundled DEB/RPM and ActivityWatch watchers replacement can be downloaded from
 [releases](https://github.com/2e3s/awatcher/releases).
+At this moment, neither Flatpak nor AppImage support quering Wayland activity.
 
 ### Module for ActivityWatch
 
 - Run `sudo unzip aw-awatcher.zip -d /usr/local/bin` in the console to allow ActivityWatch to detect its presence.
-  - Or install the provided **aw-awatcher_\*.deb**.
+  - Or install the provided **aw-awatcher_\*.deb** or **aw-awatcher_\*.rpm**.
 - Remove `aw-watcher-window` and `aw-watcher-afk` from autostart at `aw-qt/aw-qt.toml` in [config directory](https://docs.activitywatch.net/en/latest/directories.html#config),
   add `aw-awatcher`.
 - Restart ActivityWatch. In the Modules submenu there should be a new checked module **aw-awatcher**. Note that awatcher shows up in the Web UI under Timeline as `aw-watcher-window_$HOSTNAME`.
