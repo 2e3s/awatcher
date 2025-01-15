@@ -19,10 +19,10 @@ pub async fn run(
     );
 
     if !no_tray {
-        let tray = Tray::new(host, port, config_file, shutdown_sender, manager);
+        let tray = Tray::new(host.clone(), port, config_file, shutdown_sender, manager);
         let service = ksni::TrayService::new(tray);
         service.spawn();
     }
 
-    server::run(port).await;
+    server::run(host.clone(), port).await;
 }

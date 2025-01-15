@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use std::net::Ipv4Addr;
 use std::path::PathBuf;
-
+use std::str::FromStr;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::modules::Manager;
@@ -22,6 +23,17 @@ impl Tray {
         shutdown_sender: UnboundedSender<()>,
         watchers_manager: Manager,
     ) -> Self {
+        let is_zero_first_octet = match Ipv4Addr::from_str(&server_host) {
+            Ok(ip) => ip.octets()[0] == 0,
+            Err(_) => false,
+        };
+
+        let server_host = if is_zero_first_octet {
+            "localhost".to_string()
+        } else {
+            server_host
+        };
+
         let checks = watchers_manager
             .path_watchers
             .iter()
