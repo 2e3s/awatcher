@@ -17,7 +17,7 @@ pub struct ReportClient {
 
 impl ReportClient {
     pub async fn new(config: Config) -> anyhow::Result<Self, Box<dyn Error>> {
-        let client = AwClient::new(&config.host, config.port, "awatcher")?;
+        let client = AwClient::new(&config.client_host(), config.port, "awatcher")?;
 
         let hostname = gethostname::gethostname().into_string().unwrap();
         let idle_bucket_name = format!("aw-watcher-afk_{hostname}");

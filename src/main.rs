@@ -25,9 +25,13 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
     let config = config.watchers_config;
 
     if config.no_server {
-        warn!("Not sending to server {}:{}", config.host, config.port);
+        warn!(
+            "Not sending to server {}:{}",
+            config.client_host(),
+            config.port
+        );
     } else {
-        info!("Sending to server {}:{}", config.host, config.port);
+        info!("Sending to server {}:{}", config.client_host(), config.port);
     }
     info!(
         "Idle timeout: {} seconds",
