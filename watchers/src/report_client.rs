@@ -41,7 +41,7 @@ impl ReportClient {
         Fut: Future<Output = Result<T, E>>,
         E: std::error::Error + Send + Sync + 'static,
     {
-        for (attempt, &secs) in [1, 2].iter().enumerate() {
+        for (attempt, &secs) in [1, 2, 4].iter().enumerate() {
             match f().await {
                 Ok(val) => return Ok(val),
                 Err(e)
