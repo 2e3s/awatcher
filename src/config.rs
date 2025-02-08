@@ -15,6 +15,8 @@ pub struct RunnerConfig {
     pub config_file: PathBuf,
     #[cfg(feature = "bundle")]
     pub no_tray: bool,
+    pub disable_idle_watcher: bool,
+    pub disable_window_watcher: bool,
 }
 
 pub fn setup_logger(verbosity: LevelFilter) -> Result<(), fern::InitError> {
@@ -70,6 +72,12 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
             arg!(--"no-server" "Don't send data to the ActivityWatch server")
                 .value_parser(value_parser!(bool))
                 .action(ArgAction::SetTrue),
+            arg!(--"disable-idle-watcher" "Don't watch for idle activity")
+                .value_parser(value_parser!(bool))
+                .action(ArgAction::SetTrue),
+            arg!(--"disable-window-watcher" "Don't watch for window activity")
+                .value_parser(value_parser!(bool))
+                .action(ArgAction::SetTrue),
             #[cfg(feature = "bundle")]
             arg!(--"no-tray" "Don't use the bundled tray, run only server and watchers in the background")
                 .value_parser(value_parser!(bool))
@@ -106,6 +114,8 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
         config_file: config.config_file,
         #[cfg(feature = "bundle")]
         no_tray: *matches.get_one("no-tray").unwrap(),
+        disable_idle_watcher: *matches.get_one("disable-idle-watcher").unwrap(),
+        disable_window_watcher: *matches.get_one("disable-window-watcher").unwrap(),
     })
 }
 
@@ -143,6 +153,17 @@ fn merge_cli(config: &mut FileConfig, matches: &ArgMatches) {
     get_arg_value("port", matches, &mut config.server.port);
     #[cfg(not(feature = "bundle"))]
     get_arg_value("host", matches, &mut config.server.host);
+
+    get_arg_value(
+        "disable-idle-watcher",
+        matches,
+        &mut config.client.disable_idle_watcher,
+    );
+    get_arg_value(
+        "disable-window-watcher",
+        matches,
+        &mut config.client.disable_window_watcher,
+    );
 }
 
 fn get_arg_value<T>(id: &str, matches: &ArgMatches, config_value: &mut T)

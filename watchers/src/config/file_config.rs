@@ -69,6 +69,10 @@ pub struct ClientConfig {
     pub poll_time_window_seconds: u32,
     #[serde(default)]
     pub filters: Vec<Filter>,
+    #[serde(default)]
+    pub disable_idle_watcher: bool,
+    #[serde(default)]
+    pub disable_window_watcher: bool,
 }
 
 impl ClientConfig {
@@ -168,6 +172,8 @@ host = "http://address.com"
 idle-timeout-seconds=14
 poll-time-idle-seconds=13
 poll-time-window-seconds=12
+disable-idle-watcher=false
+disable-window-watcher=false
 
 # Add as many filters as needed.
 # There should be at least 1 match field, and at least 1 replace field.

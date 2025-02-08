@@ -8,8 +8,9 @@ extern crate log;
 mod bundle;
 mod config;
 
-use std::error::Error;
+use std::pin::Pin;
 use std::sync::Arc;
+use std::{error::Error, future::Future};
 use tokio::signal::unix::{signal, SignalKind};
 #[cfg(feature = "bundle")]
 use tokio::sync::mpsc;
@@ -22,7 +23,19 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
     let no_tray = config.no_tray;
     #[cfg(feature = "bundle")]
     let config_file = config.config_file;
+    let disable_idle_watcher = config.disable_idle_watcher;
+    let disable_window_watcher = config.disable_window_watcher;
     let config = config.watchers_config;
+
+    #[cfg(not(feature = "bundle"))]
+    if disable_idle_watcher && disable_window_watcher {
+        error!("Both watchers are disabled");
+        return Err("At least one watcher must be enabled".into());
+    }
+    #[cfg(feature = "bundle")]
+    if disable_idle_watcher && disable_window_watcher {
+        warn!("Both watchers are disabled");
+    }
 
     if config.no_server {
         warn!(
@@ -58,8 +71,22 @@ async fn main() -> anyhow::Result<(), Box<dyn Error>> {
 
     let client = Arc::new(ReportClient::new(config).await?);
 
-    let idle_future = run_first_supported(Arc::clone(&client), &WatcherType::Idle);
-    let active_window_future = run_first_supported(Arc::clone(&client), &WatcherType::ActiveWindow);
+    let idle_future: Pin<Box<dyn Future<Output = bool> + Send>> = if disable_idle_watcher {
+        Box::pin(std::future::pending())
+    } else {
+        Box::pin(run_first_supported(Arc::clone(&client), &WatcherType::Idle))
+    };
+
+    let active_window_future: Pin<Box<dyn Future<Output = bool> + Send>> = if disable_window_watcher
+    {
+        Box::pin(std::future::pending::<bool>())
+    } else {
+        Box::pin(run_first_supported(
+            Arc::clone(&client),
+            &WatcherType::ActiveWindow,
+        ))
+    };
+
     let sigterm = async {
         signal(SignalKind::terminate()).unwrap().recv().await;
         warn!("Caught SIGTERM, shutting down...");

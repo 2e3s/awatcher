@@ -74,6 +74,8 @@ host = "127.0.0.1"
 idle-timeout-seconds=180
 poll-time-idle-seconds=4
 poll-time-window-seconds=1
+disable-idle-watcher=false
+disable-window-watcher=false
 
 [[awatcher.filters]]
 # match only "navigator"
