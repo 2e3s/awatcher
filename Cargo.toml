@@ -4,7 +4,7 @@ description = "An activity and idle watcher based on ActivityWatch"
 version = { workspace = true }
 authors = ["Demmie <2e3s19@gmail.com>"]
 edition = "2021"
-license = "Mozilla Public License 2.0"
+license = "MPL-2.0"
 repository = "https://github.com/2e3s/awatcher"
 
 [[bin]]
