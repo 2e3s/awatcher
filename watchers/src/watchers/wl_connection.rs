@@ -13,6 +13,8 @@ use wayland_protocols_plasma::idle::client::{
 };
 use wayland_protocols_wlr::foreign_toplevel::v1::client::zwlr_foreign_toplevel_manager_v1::ZwlrForeignToplevelManagerV1;
 
+use super::wl_bindings::zdwl_ipc::zdwl_ipc_manager_v2::ZdwlIpcManagerV2;
+
 macro_rules! subscribe_state {
     ($struct_name:ty, $data_name:ty, $state:ty) => {
         impl Dispatch<$struct_name, $data_name> for $state {
@@ -67,6 +69,19 @@ where
             .bind::<ZwlrForeignToplevelManagerV1, T, ()>(
                 &self.queue_handle,
                 1..=ZwlrForeignToplevelManagerV1::interface().version,
+                (),
+            )
+            .map_err(std::convert::Into::into)
+    }
+
+    pub fn get_dwl_ipc_manager(&self) -> anyhow::Result<ZdwlIpcManagerV2>
+    where
+        T: Dispatch<ZdwlIpcManagerV2, ()>,
+    {
+        self.globals
+            .bind::<ZdwlIpcManagerV2, T, ()>(
+                &self.queue_handle,
+                1..=ZdwlIpcManagerV2::interface().version,
                 (),
             )
             .map_err(std::convert::Into::into)
