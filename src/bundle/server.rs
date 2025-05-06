@@ -16,7 +16,7 @@ pub async fn run(host: String, port: u16) {
     let mut addrs_iter = (host + ":" + &port.to_string()).to_socket_addrs().unwrap();
     let address = addrs_iter.next().unwrap();
 
-    info!("Starting server on {}", address);
+    info!("Starting server on {address}");
     config.address = address.ip().to_string();
     config.port = address.port();
 
