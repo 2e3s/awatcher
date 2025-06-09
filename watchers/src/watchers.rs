@@ -8,6 +8,8 @@ pub mod idle;
 #[cfg(feature = "kwin_window")]
 mod kwin_window;
 mod wl_connection;
+mod wl_bindings;
+mod wl_dwl_ipc;
 mod wl_ext_idle_notify;
 mod wl_foreign_toplevel_management;
 mod wl_kwin_idle;
@@ -98,6 +100,10 @@ async fn filter_first_supported(
             ));
         }
         WatcherType::ActiveWindow => {
+            watch!(create_watcher::<wl_dwl_ipc::WindowWatcher>(
+                client,
+                "Wayland window (dwl-ipc-unstable-v2)"
+            ));
             watch!(create_watcher::<
                 wl_foreign_toplevel_management::WindowWatcher,
             >(
