@@ -48,7 +48,7 @@ impl ReportClient {
                     if e.to_string()
                         .contains("tcp connect error: Connection refused") =>
                 {
-                    warn!("Failed to connect on attempt #{attempt}, retrying: {}", e);
+                    warn!("Failed to connect on attempt #{attempt}, retrying: {e}");
 
                     tokio::time::sleep(tokio::time::Duration::from_secs(secs)).await;
                 }
@@ -107,11 +107,7 @@ impl ReportClient {
         let mut data = Map::new();
 
         if let Some((inserted_app_id, inserted_title)) = self.get_filtered_data(app_id, title) {
-            trace!(
-                "Reporting app_id: {}, title: {}",
-                inserted_app_id,
-                inserted_title
-            );
+            trace!("Reporting app_id: {inserted_app_id}, title: {inserted_title}");
 
             data.insert("app".to_string(), Value::String(inserted_app_id));
             data.insert("title".to_string(), Value::String(inserted_title));
@@ -155,13 +151,13 @@ impl ReportClient {
         match filter_result {
             FilterResult::Replace(replacement) => {
                 let app_id = if let Some(replace_app_id) = replacement.replace_app_id {
-                    trace!("Replacing app_id by {}", replace_app_id);
+                    trace!("Replacing app_id by {replace_app_id}");
                     replace_app_id
                 } else {
                     app_id.to_string()
                 };
                 let title = if let Some(replace_title) = replacement.replace_title {
-                    trace!("Replacing title by {}", replace_title);
+                    trace!("Replacing title by {replace_title}");
                     replace_title
                 } else {
                     title.to_string()

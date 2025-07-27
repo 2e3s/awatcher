@@ -92,7 +92,7 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for ToplevelState {
                     window.app_id = app_id;
                 }
                 HandleEvent::State { state } => {
-                    trace!("State is changed for {id}: {:?}", state);
+                    trace!("State is changed for {id}: {state:?}");
                     if state.contains(&(HandleState::Activated as u8)) {
                         trace!("Window is activated: {id}");
                         toplevel_state.current_window_id = Some(id);
