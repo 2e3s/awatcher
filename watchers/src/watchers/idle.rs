@@ -258,8 +258,7 @@ mod tests {
                 assert_eq!(
                     self.diff_seconds(*last_input_time),
                     expected_last_input_seconds_ago,
-                    "{}",
-                    message
+                    "{message}"
                 );
             } else {
                 panic!("Expected active status");
@@ -283,10 +282,9 @@ mod tests {
                 assert_eq!(
                     self.diff_seconds(*last_input_time),
                     last_input_ago,
-                    "{}",
-                    message
+                    "{message}"
                 );
-                assert_eq!(duration.num_seconds(), last_input_ago, "{}", message);
+                assert_eq!(duration.num_seconds(), last_input_ago, "{message}");
             } else {
                 panic!("Expected idle status");
             }

@@ -138,7 +138,7 @@ pub async fn run_first_supported(client: Arc<ReportClient>, watcher_type: &Watch
                     error!("Error on {watcher_type} iteration: {e}");
                 }
                 Err(_) => {
-                    error!("Timeout on {watcher_type} iteration after {:?}", sleep_time);
+                    error!("Timeout on {watcher_type} iteration after {sleep_time:?}");
                 }
             }
 
