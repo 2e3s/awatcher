@@ -29,7 +29,6 @@ struct ToplevelState {
 }
 
 fn wayland_thread(sender: mpsc::Sender<WindowData>) -> anyhow::Result<()> {
-
     let conn = Connection::connect_to_env()?;
     let (globals, mut event_queue) = registry_queue_init(&conn)?;
     let qh = event_queue.handle();
