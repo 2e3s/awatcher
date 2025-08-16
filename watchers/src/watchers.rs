@@ -14,6 +14,7 @@ mod wl_kwin_idle;
 mod x11_connection;
 mod x11_screensaver_idle;
 mod x11_window;
+mod wl_cosmic_toplevel_management;
 
 use crate::{config::Config, report_client::ReportClient};
 use async_trait::async_trait;
@@ -103,6 +104,10 @@ async fn filter_first_supported(
             >(
                 client,
                 "Wayland window (wlr-foreign-toplevel-management-unstable-v1)"
+            ));
+            watch!(create_watcher::<wl_cosmic_toplevel_management::WindowWatcher>(
+                client,
+                "Cosmic Wayland window (cosmic-toplevel-info-unstable-v1)"
             ));
             // XWayland gives _NET_WM_NAME on some windows in KDE, but not on others
             #[cfg(feature = "kwin_window")]
