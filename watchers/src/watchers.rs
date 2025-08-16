@@ -8,6 +8,7 @@ pub mod idle;
 #[cfg(feature = "kwin_window")]
 mod kwin_window;
 mod wl_connection;
+mod wl_cosmic_toplevel_management;
 mod wl_ext_idle_notify;
 mod wl_foreign_toplevel_management;
 mod wl_kwin_idle;
@@ -104,6 +105,12 @@ async fn filter_first_supported(
                 client,
                 "Wayland window (wlr-foreign-toplevel-management-unstable-v1)"
             ));
+            watch!(
+                create_watcher::<wl_cosmic_toplevel_management::WindowWatcher>(
+                    client,
+                    "Cosmic Wayland window (cosmic-toplevel-info-unstable-v1)"
+                )
+            );
             // XWayland gives _NET_WM_NAME on some windows in KDE, but not on others
             #[cfg(feature = "kwin_window")]
             watch!(create_watcher::<kwin_window::WindowWatcher>(

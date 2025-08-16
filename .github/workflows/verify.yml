@@ -23,7 +23,7 @@ jobs:
       AW_WEBUI_DIR: ${{ github.workspace }}/src/bundle
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install -y libdbus-1-dev
+      - run: sudo apt-get install -y libdbus-1-dev libxkbcommon-dev
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -35,7 +35,7 @@ jobs:
       AW_WEBUI_DIR: ${{ github.workspace }}/src/bundle
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install -y libdbus-1-dev
+      - run: sudo apt-get install -y libdbus-1-dev libxkbcommon-dev
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -47,7 +47,7 @@ jobs:
       AW_WEBUI_DIR: ${{ github.workspace }}/src/bundle
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install -y libdbus-1-dev
+      - run: sudo apt-get install -y libdbus-1-dev libxkbcommon-dev
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features --workspace

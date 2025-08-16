@@ -49,18 +49,21 @@ as soon as the environment has the necessary interfaces.
 | --------------- | -------------------- | ------------------- |
 | X11             | :green_circle:       | :green_circle:      |
 | Sway, Hyprland  | :green_circle: [^1]  | :green_circle: [^2] |
-| Wayland + KDE   | :yellow_circle: [^3] | :green_circle:      |
-| Wayland + Gnome | :yellow_circle: [^4] | :green_circle:      |
+| COSMIC          | :green_circle: [^3]  | :green_circle:      |
+| Wayland + KDE   | :yellow_circle: [^4] | :green_circle: [^5] |
+| Wayland + Gnome | :yellow_circle: [^6] | :green_circle:      |
 
 > [!IMPORTANT]
 > Gnome watcher in Wayland requires [this extension](https://extensions.gnome.org/extension/5592/focused-window-d-bus/) to be installed.
 > Also, if you have problems with tray icons in Gnome, you may try [this extension](https://extensions.gnome.org/extension/615/appindicator-support/) for the bundle (StatusNotifierItem specification).
 
 [^1]: A few other DEs besides Sway may implement [wlr foreign toplevel protocol](https://wayland.app/protocols/wlr-foreign-toplevel-management-unstable-v1),
-[^2]: [KWin idle](https://wayland.app/protocols/kde-idle) and [Idle notify](https://wayland.app/protocols/ext-idle-notify-v1) protocols are supported.
-[^3]: KWin doesn't implement any toplevel protocol yet, KWin script is utilized instead (builtin, no actions required).
+[^2]: [Idle notify](https://wayland.app/protocols/ext-idle-notify-v1) protocols are supported by most environments.
+[^3]: COSMIC has its own [toplevel protocol](https://wayland.app/protocols/cosmic-toplevel-info-unstable-v1).
+[^4]: KWin doesn't implement any toplevel protocol yet, KWin script is utilized instead (builtin, no actions required).
       KDE partially supports XWayland, but inconsistently, hence X11 is not utilized for it.
-[^4]: Gnome doesn't implement any toplevel protocol yet, so [this extension](https://extensions.gnome.org/extension/5592/focused-window-d-bus/) should be installed.
+[^5]: [KWin idle](https://wayland.app/protocols/kde-idle) protocol is supported for older KDE versions.
+[^6]: Gnome doesn't implement any toplevel protocol yet, so [this extension](https://extensions.gnome.org/extension/5592/focused-window-d-bus/) should be installed.
 
 ## Configuration
 
