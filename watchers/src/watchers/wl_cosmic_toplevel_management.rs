@@ -14,6 +14,7 @@ use cctk::{
 };
 use std::{sync::Arc, thread};
 use tokio::sync::mpsc;
+use wayland_client::EventQueue;
 
 struct WindowData {
     app_id: String,
@@ -28,22 +29,31 @@ struct ToplevelState {
     sender: mpsc::Sender<WindowData>,
 }
 
-fn wayland_thread(sender: mpsc::Sender<WindowData>) -> anyhow::Result<()> {
+fn initialize_state(
+    sender: mpsc::Sender<WindowData>,
+) -> anyhow::Result<(ToplevelState, EventQueue<ToplevelState>)> {
     let conn = Connection::connect_to_env()?;
-    let (globals, mut event_queue) = registry_queue_init(&conn)?;
-    let qh = event_queue.handle();
+    let (globals, event_queue) = registry_queue_init(&conn)?;
+    let qh: QueueHandle<ToplevelState> = event_queue.handle();
 
     let registry_state = RegistryState::new(&globals);
     let toplevel_info_state = ToplevelInfoState::try_new(&registry_state, &qh)
         .ok_or_else(|| anyhow!("Required COSMIC toplevel protocols not found"))?;
 
-    let mut state = ToplevelState {
+    let state = ToplevelState {
         registry_state,
         toplevel_info_state,
         active_toplevel_identifier: None,
         sender,
     };
 
+    Ok((state, event_queue))
+}
+
+fn wayland_thread(
+    mut state: ToplevelState,
+    mut event_queue: EventQueue<ToplevelState>,
+) -> anyhow::Result<()> {
     log::debug!("Performing initial roundtrip");
     event_queue.roundtrip(&mut state)?;
     log::debug!("Initial roundtrip completed");
@@ -146,9 +156,10 @@ impl Watcher for WindowWatcher {
         // Create a channel to communicate between the new thread and the async runtime.
         let (sender, receiver) = mpsc::channel(32);
 
+        let (state, event_queue) = initialize_state(sender)?;
         // Spawn a dedicated OS thread for all blocking Wayland communication.
         thread::spawn(move || {
-            if let Err(e) = wayland_thread(sender) {
+            if let Err(e) = wayland_thread(state, event_queue) {
                 log::error!("Wayland thread failed: {e:?}");
             }
         });
