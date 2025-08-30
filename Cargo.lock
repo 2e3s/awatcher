@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "awatcher"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "anyhow",
  "aw-datastore",
@@ -4248,7 +4248,7 @@ checksum = "c62a0a307cb4a311d3a07867860911ca130c3494e8c2719593806c08bc5d0484"
 
 [[package]]
 name = "watchers"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "anyhow",
  "async-trait",
