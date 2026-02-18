@@ -99,6 +99,16 @@ async fn filter_first_supported(
             ));
         }
         WatcherType::ActiveWindow => {
+            #[cfg(feature = "gnome")]
+            watch!(create_watcher::<gnome_window::WindowWatcher>(
+                client,
+                "Gnome window (extension)"
+            ));
+            #[cfg(feature = "kwin_window")]
+            watch!(create_watcher::<kwin_window::WindowWatcher>(
+                client,
+                "KWin window (script)"
+            ));
             watch!(create_watcher::<
                 wl_foreign_toplevel_management::WindowWatcher,
             >(
@@ -111,17 +121,6 @@ async fn filter_first_supported(
                     "Cosmic Wayland window (cosmic-toplevel-info-unstable-v1)"
                 )
             );
-            // XWayland gives _NET_WM_NAME on some windows in KDE, but not on others
-            #[cfg(feature = "kwin_window")]
-            watch!(create_watcher::<kwin_window::WindowWatcher>(
-                client,
-                "KWin window (script)"
-            ));
-            #[cfg(feature = "gnome")]
-            watch!(create_watcher::<gnome_window::WindowWatcher>(
-                client,
-                "Gnome window (extension)"
-            ));
             watch!(create_watcher::<x11_window::WindowWatcher>(
                 client,
                 "X11 window"

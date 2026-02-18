@@ -29,9 +29,20 @@ struct ToplevelState {
     sender: mpsc::Sender<WindowData>,
 }
 
+fn is_cosmic() -> bool {
+    if let Ok(de) = std::env::var("XDG_CURRENT_DESKTOP") {
+        de.to_lowercase().contains("cosmic")
+    } else {
+        false
+    }
+}
+
 fn initialize_state(
     sender: mpsc::Sender<WindowData>,
 ) -> anyhow::Result<(ToplevelState, EventQueue<ToplevelState>)> {
+    if !is_cosmic() {
+        return Err(anyhow!("Not in COSMIC environment"));
+    }
     let conn = Connection::connect_to_env()?;
     let (globals, event_queue) = registry_queue_init(&conn)?;
     let qh: QueueHandle<ToplevelState> = event_queue.handle();
