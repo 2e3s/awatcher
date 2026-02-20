@@ -38,6 +38,10 @@ impl WindowWatcher {
                     .body()
                     .deserialize()
                     .with_context(|| "DBus interface cannot be parsed as string")?;
+                if json == "{}" {
+                    trace!("No window is active (empty JSON)");
+                    return Ok(WindowData::default());
+                }
                 serde_json::from_str(&json).with_context(|| {
                     format!("DBus interface org.gnome.shell.extensions.FocusedWindow returned wrong JSON: {json}")
                 })
