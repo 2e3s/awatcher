@@ -69,7 +69,8 @@ async fn create_watcher<T: Watcher>(client: &Arc<ReportClient>, name: &str) -> O
 macro_rules! watch {
     ($watcher:expr) => {
         if let Some(watcher) = $watcher.await {
-            return Some(Box::new(watcher));
+            let watcher: Box<dyn Watcher> = Box::new(watcher);
+            return Some(watcher);
         }
     };
 }

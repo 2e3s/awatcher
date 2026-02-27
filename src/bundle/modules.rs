@@ -127,7 +127,7 @@ impl Manager {
     pub fn start_watcher(&mut self, watcher_path: &Path) -> bool {
         let watcher_name = if let Some(watcher) = self.get_watcher_by_path(watcher_path) {
             if watcher.start() {
-                watcher.name().to_string()
+                watcher.name().clone()
             } else {
                 return false;
             }
@@ -145,7 +145,7 @@ impl Manager {
     pub fn stop_watcher(&mut self, watcher_path: &Path) {
         let watcher_name = if let Some(watcher) = self.get_watcher_by_path(watcher_path) {
             watcher.stop();
-            Some(watcher.name().to_string())
+            Some(watcher.name().clone())
         } else {
             None
         };
