@@ -46,9 +46,10 @@ impl Dispatch<ZwlrForeignToplevelManagerV1, ()> for ToplevelState {
     ) {
         match event {
             ManagerEvent::Toplevel { toplevel } => {
-                debug!("Toplevel handle is received {}", toplevel.id());
+                let id = toplevel.id().to_string();
+                debug!("Toplevel handle is received {}", id);
                 state.windows.insert(
-                    toplevel.id().to_string(),
+                    id,
                     WindowData {
                         app_id: "unknown".into(),
                         title: "unknown".into(),
@@ -66,9 +67,6 @@ impl Dispatch<ZwlrForeignToplevelManagerV1, ()> for ToplevelState {
         EVT_TOPLEVEL_OPCODE => (ZwlrForeignToplevelHandleV1, ()),
     ]);
 }
-
-subscribe_state!(wl_registry::WlRegistry, GlobalListContents, ToplevelState);
-subscribe_state!(wl_registry::WlRegistry, (), ToplevelState);
 
 impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for ToplevelState {
     fn event(
@@ -104,6 +102,9 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for ToplevelState {
                     if toplevel_state.windows.remove(&id).is_none() {
                         warn!("Window is already removed: {id}");
                     }
+                    if toplevel_state.current_window_id.as_deref() == Some(&id) {
+                        toplevel_state.current_window_id = None;
+                    }
                 }
                 _ => (),
             };
@@ -112,6 +113,9 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for ToplevelState {
         }
     }
 }
+
+subscribe_state!(wl_registry::WlRegistry, GlobalListContents, ToplevelState);
+subscribe_state!(wl_registry::WlRegistry, (), ToplevelState);
 
 pub struct WindowWatcher {
     connection: WlEventConnection<ToplevelState>,

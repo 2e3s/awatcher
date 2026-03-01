@@ -5,6 +5,8 @@ use wayland_client::{
     Connection, Dispatch, EventQueue, Proxy, QueueHandle,
 };
 
+use cctk::cosmic_protocols::toplevel_info::v1::client::zcosmic_toplevel_info_v1::ZcosmicToplevelInfoV1;
+use wayland_protocols::ext::foreign_toplevel_list::v1::client::ext_foreign_toplevel_list_v1::ExtForeignToplevelListV1;
 use wayland_protocols::ext::idle_notify::v1::client::{
     ext_idle_notification_v1::ExtIdleNotificationV1, ext_idle_notifier_v1::ExtIdleNotifierV1,
 };
@@ -124,5 +126,31 @@ where
 
         let idle = self.get_kwin_idle()?;
         Ok(idle.get_idle_timeout(&seat, timeout, &self.queue_handle, ()))
+    }
+
+    pub fn get_ext_foreign_toplevel_list(&self) -> anyhow::Result<ExtForeignToplevelListV1>
+    where
+        T: Dispatch<ExtForeignToplevelListV1, ()>,
+    {
+        self.globals
+            .bind::<ExtForeignToplevelListV1, T, ()>(
+                &self.queue_handle,
+                1..=ExtForeignToplevelListV1::interface().version,
+                (),
+            )
+            .map_err(std::convert::Into::into)
+    }
+
+    pub fn get_cosmic_toplevel_info_v2(&self) -> anyhow::Result<ZcosmicToplevelInfoV1>
+    where
+        T: Dispatch<ZcosmicToplevelInfoV1, ()>,
+    {
+        self.globals
+            .bind::<ZcosmicToplevelInfoV1, T, ()>(
+                &self.queue_handle,
+                2..=ZcosmicToplevelInfoV1::interface().version,
+                (),
+            )
+            .map_err(std::convert::Into::into)
     }
 }
