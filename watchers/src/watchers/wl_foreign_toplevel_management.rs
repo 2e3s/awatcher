@@ -152,10 +152,7 @@ impl Watcher for WindowWatcher {
 
         let mut toplevel_state = ToplevelState::new();
 
-        connection
-            .event_queue
-            .roundtrip(&mut toplevel_state)
-            .unwrap();
+        connection.roundtrip(&mut toplevel_state).unwrap();
 
         Ok(Self {
             connection,
@@ -165,7 +162,6 @@ impl Watcher for WindowWatcher {
 
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
-            .event_queue
             .roundtrip(&mut self.toplevel_state)
             .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
 

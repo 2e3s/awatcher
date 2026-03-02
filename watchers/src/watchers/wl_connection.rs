@@ -33,9 +33,9 @@ macro_rules! subscribe_state {
 pub(crate) use subscribe_state;
 
 pub struct WlEventConnection<T> {
-    pub globals: GlobalList,
-    pub event_queue: EventQueue<T>,
-    pub queue_handle: QueueHandle<T>,
+    globals: GlobalList,
+    event_queue: EventQueue<T>,
+    queue_handle: QueueHandle<T>,
 }
 
 impl<T> WlEventConnection<T>
@@ -59,6 +59,13 @@ where
             event_queue,
             queue_handle,
         })
+    }
+
+    pub fn roundtrip(&mut self, state: &mut T) -> anyhow::Result<()> {
+        self.event_queue
+            .roundtrip(state)
+            .map_err(std::convert::Into::into)
+            .map(|_| ())
     }
 
     pub fn get_foreign_toplevel_manager(&self) -> anyhow::Result<ZwlrForeignToplevelManagerV1>

@@ -26,22 +26,31 @@ use wayland_protocols::ext::foreign_toplevel_list::v1::client::ext_foreign_tople
 struct WindowData {
     app_id: String,
     title: String,
-    cosmic_handle: Option<ZcosmicToplevelHandleV1>,
+    cosmic_handle: ZcosmicToplevelHandleV1,
+    activated: bool,
 }
 
 struct ToplevelState {
-    cosmic_info: Option<ZcosmicToplevelInfoV1>,
+    cosmic_info: ZcosmicToplevelInfoV1,
     windows: HashMap<String, WindowData>,
     current_window_id: Option<String>,
+    initialized: bool,
 }
 
 impl ToplevelState {
-    fn new() -> Self {
+    fn new(cosmic_info: ZcosmicToplevelInfoV1) -> Self {
         Self {
-            cosmic_info: None,
+            cosmic_info,
             windows: HashMap::new(),
             current_window_id: None,
+            initialized: false,
         }
+    }
+
+    fn get_active_window(&self) -> Option<&WindowData> {
+        let active_window_id = self.current_window_id.as_ref()?;
+
+        self.windows.get(active_window_id)
     }
 }
 
@@ -59,10 +68,7 @@ impl Dispatch<ExtForeignToplevelListV1, ()> for ToplevelState {
                 let id = toplevel.id().to_string();
                 debug!("Foreign toplevel handle is received: {id}");
 
-                let cosmic_handle = state
-                    .cosmic_info
-                    .as_ref()
-                    .map(|info| info.get_cosmic_toplevel(&toplevel, qh, ()));
+                let cosmic_handle = state.cosmic_info.get_cosmic_toplevel(&toplevel, qh, ());
 
                 state.windows.insert(
                     id,
@@ -70,6 +76,7 @@ impl Dispatch<ExtForeignToplevelListV1, ()> for ToplevelState {
                         app_id: "unknown".into(),
                         title: "unknown".into(),
                         cosmic_handle,
+                        activated: false,
                     },
                 );
             }
@@ -125,7 +132,7 @@ impl Dispatch<ExtForeignToplevelHandleV1, ()> for ToplevelState {
 
 impl Dispatch<ZcosmicToplevelInfoV1, ()> for ToplevelState {
     fn event(
-        _state: &mut Self,
+        toplevel_state: &mut Self,
         _: &ZcosmicToplevelInfoV1,
         event: <ZcosmicToplevelInfoV1 as Proxy>::Event,
         _: &(),
@@ -135,6 +142,34 @@ impl Dispatch<ZcosmicToplevelInfoV1, ()> for ToplevelState {
         match event {
             CosmicInfoEvent::Toplevel { toplevel } => {
                 debug!("Cosmic toplevel handle is received: {}", toplevel.id());
+            }
+            CosmicInfoEvent::Done => {
+                let current_is_still_active = toplevel_state
+                    .current_window_id
+                    .as_ref()
+                    .and_then(|id| toplevel_state.windows.get(id))
+                    .map(|w| w.activated)
+                    .unwrap_or(false);
+
+                if !current_is_still_active {
+                    toplevel_state.current_window_id = toplevel_state
+                        .windows
+                        .iter()
+                        .find_map(|(id, window)| window.activated.then(|| id.clone()));
+                    if let Some(window) = toplevel_state.get_active_window() {
+                        debug!(
+                            "Active window is changed: {} - {}",
+                            window.app_id, window.title
+                        );
+                    }
+                }
+                trace!(
+                    "Cosmic toplevel info is done, \
+                    current active window is still active = {}, \
+                    current active window id = {:?}",
+                    current_is_still_active,
+                    toplevel_state.current_window_id,
+                );
             }
             CosmicInfoEvent::Finished => {
                 error!("Cosmic toplevel info is finished, the application may crash");
@@ -156,9 +191,9 @@ impl Dispatch<ZcosmicToplevelHandleV1, ()> for ToplevelState {
         let entry = toplevel_state
             .windows
             .iter_mut()
-            .find(|(_, w)| w.cosmic_handle.as_ref() == Some(handle));
+            .find(|(_, w)| w.cosmic_handle == *handle);
 
-        if let Some((id, _window)) = entry {
+        if let Some((id, window)) = entry {
             let id = id.clone();
             if let CosmicHandleEvent::State { state } = event {
                 // State is encoded as an array of u32 values (4 bytes each)
@@ -166,9 +201,17 @@ impl Dispatch<ZcosmicToplevelHandleV1, ()> for ToplevelState {
                     let value = u32::from_ne_bytes(chunk[0..4].try_into().unwrap());
                     value == CosmicHandleState::Activated as u32
                 });
+
+                window.activated = activated;
+
                 if activated {
-                    debug!("Window is activated: {id}");
-                    toplevel_state.current_window_id = Some(id);
+                    debug!("Window is marked activated: {id}");
+                    if !toplevel_state.initialized {
+                        toplevel_state.initialized = true;
+                        toplevel_state.current_window_id = Some(id);
+                    }
+                } else if toplevel_state.current_window_id.as_deref() == Some(&id) {
+                    debug!("Window is marked deactivated: {id}");
                 }
             }
         } else {
@@ -187,23 +230,26 @@ pub struct WindowWatcher {
 
 impl WindowWatcher {
     async fn send_active_window(&self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        let active_window_id = self
-            .toplevel_state
-            .current_window_id
-            .as_ref()
-            .ok_or(anyhow!("Current window is unknown"))?;
-        let active_window = self
-            .toplevel_state
-            .windows
-            .get(active_window_id)
-            .ok_or(anyhow!(
-                "Current window is not found by ID {active_window_id}"
-            ))?;
+        let active_window_id = self.toplevel_state.current_window_id.as_ref();
 
-        client
-            .send_active_window(&active_window.app_id, &active_window.title)
-            .await
-            .with_context(|| "Failed to send heartbeat for active window")
+        if let Some(active_window_id) = active_window_id {
+            let active_window =
+                self.toplevel_state
+                    .windows
+                    .get(active_window_id)
+                    .ok_or(anyhow!(
+                        "Current window is not found by ID {active_window_id}"
+                    ))?;
+
+            client
+                .send_active_window(&active_window.app_id, &active_window.title)
+                .await
+                .with_context(|| "Failed to send heartbeat for active window")
+        } else {
+            // This happens when a toplevel handle for the new window is received but the window is not marked as activated yet
+            info!("Current active window is unknown, skipping sending heartbeat");
+            Ok(())
+        }
     }
 }
 
@@ -212,23 +258,12 @@ impl Watcher for WindowWatcher {
     async fn new(_: &Arc<ReportClient>) -> anyhow::Result<Self> {
         let mut connection: WlEventConnection<ToplevelState> = WlEventConnection::connect()?;
 
-        let mut toplevel_state = ToplevelState::new();
-
         let _foreign_list = connection.get_ext_foreign_toplevel_list()?;
+        let cosmic_info = connection.get_cosmic_toplevel_info_v2()?;
 
-        // Bind the cosmic-toplevel-info protocol (v2+) for activation state
-        toplevel_state.cosmic_info = connection.get_cosmic_toplevel_info_v2().ok();
+        let mut toplevel_state = ToplevelState::new(cosmic_info);
 
-        // First roundtrip: receives foreign toplevel handles and sends
-        // get_cosmic_toplevel requests
         connection
-            .event_queue
-            .roundtrip(&mut toplevel_state)
-            .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
-
-        // Second roundtrip: receives cosmic toplevel state events
-        connection
-            .event_queue
             .roundtrip(&mut toplevel_state)
             .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
 
@@ -240,7 +275,6 @@ impl Watcher for WindowWatcher {
 
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
-            .event_queue
             .roundtrip(&mut self.toplevel_state)
             .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
 

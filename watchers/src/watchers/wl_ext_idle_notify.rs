@@ -84,10 +84,7 @@ impl Watcher for IdleWatcher {
                 .unwrap(),
             client.config.idle_timeout,
         );
-        connection
-            .event_queue
-            .roundtrip(&mut watcher_state)
-            .unwrap();
+        connection.roundtrip(&mut watcher_state).unwrap();
 
         Ok(Self {
             connection,
@@ -97,7 +94,6 @@ impl Watcher for IdleWatcher {
 
     async fn run_iteration(&mut self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
         self.connection
-            .event_queue
             .roundtrip(&mut self.watcher_state)
             .map_err(|e| anyhow!("Event queue is not processed: {e}"))?;
 
