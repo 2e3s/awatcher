@@ -190,14 +190,20 @@ impl Drop for KWinScript {
 
 async fn send_active_window(
     client: &ReportClient,
-    active_window: &Arc<Mutex<ActiveWindow>>,
+    active_window: &Arc<Mutex<Option<ActiveWindow>>>,
 ) -> anyhow::Result<()> {
     let active_window = active_window.lock().await;
 
-    client
-        .send_active_window(&active_window.resource_class, &active_window.caption)
-        .await
-        .with_context(|| "Failed to send heartbeat for active window")
+    if let Some(active_window) = active_window.as_ref() {
+        client
+            .send_active_window(&active_window.resource_class, &active_window.caption)
+            .await
+            .with_context(|| "Failed to send heartbeat for active window")
+    } else {
+        // This always happens on the first run, since the active window information is known only after KWin script is triggered.
+        info!("No active window information known yet until window is changed");
+        Ok(())
+    }
 }
 
 struct ActiveWindow {
@@ -207,7 +213,7 @@ struct ActiveWindow {
 }
 
 struct ActiveWindowInterface {
-    active_window: Arc<Mutex<ActiveWindow>>,
+    active_window: Arc<Mutex<Option<ActiveWindow>>>,
 }
 
 #[interface(name = "com._2e3s.Awatcher")]
@@ -220,14 +226,22 @@ impl ActiveWindowInterface {
     ) {
         debug!("Active window class: \"{resource_class}\", name: \"{resource_name}\", caption: \"{caption}\"");
         let mut active_window = self.active_window.lock().await;
-        active_window.caption = caption;
-        active_window.resource_class = resource_class;
-        active_window.resource_name = resource_name;
+        if let Some(active_window) = active_window.as_mut() {
+            active_window.caption = caption;
+            active_window.resource_class = resource_class;
+            active_window.resource_name = resource_name;
+        } else {
+            *active_window = Some(ActiveWindow {
+                caption,
+                resource_class,
+                resource_name,
+            });
+        }
     }
 }
 
 pub struct WindowWatcher {
-    active_window: Arc<Mutex<ActiveWindow>>,
+    active_window: Arc<Mutex<Option<ActiveWindow>>>,
     // Prolong its lifetime
     _kwin_script: KWinScript,
 }
@@ -248,12 +262,8 @@ impl Watcher for WindowWatcher {
 
         kwin_script.load().await.unwrap();
 
-        let active_window = Arc::new(Mutex::new(ActiveWindow {
-            caption: String::new(),
-            resource_name: String::new(),
-            resource_class: String::new(),
-        }));
-        let active_window_interface = ActiveWindowInterface {
+        let active_window = Arc::new(Mutex::new(None));
+        let active_window_interface: ActiveWindowInterface = ActiveWindowInterface {
             active_window: Arc::clone(&active_window),
         };
 
