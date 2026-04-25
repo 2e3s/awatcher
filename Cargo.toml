@@ -24,7 +24,7 @@ version = "0.3.3"
 anyhow = "1.0.98"
 log = { version = "0.4.27", features = ["std"] }
 tokio = { version = "1.47.0" }
-serde = "1.0.219"
+serde = { version = "1.0.219", features = ["derive"] }
 
 [dev-dependencies]
 rstest = "0.26.1"
@@ -41,16 +41,17 @@ anyhow = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "signal"] }
 
 ksni = {version = "0.2.2", optional = true}
-aw-server = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "656f3c9" }
-aw-datastore = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "656f3c9" }
+aw-server = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "2875df5" }
+aw-datastore = { git = "https://github.com/ActivityWatch/aw-server-rust", optional = true, rev = "2875df5" }
 open = { version = "5.3.2", optional = true }
-serde = { workspace = true, optional = true }
+serde = { workspace = true }
+dirs = "6"
 
 [features]
 default = ["gnome", "kwin_window"]
 gnome = ["watchers/gnome"]
 kwin_window = ["watchers/kwin_window"]
-bundle = ["ksni", "aw-server", "aw-datastore", "open", "serde"]
+bundle = ["ksni", "aw-server", "aw-datastore", "open"]
 
 [package.metadata.deb.variants.module]
 name = "aw-awatcher"

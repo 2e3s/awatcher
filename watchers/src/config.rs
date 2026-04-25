@@ -12,6 +12,7 @@ pub use filters::FilterResult;
 pub struct Config {
     pub port: u16,
     pub host: String,
+    pub api_key: Option<String>,
     pub idle_timeout: Duration,
     pub poll_time_idle: Duration,
     pub poll_time_window: Duration,

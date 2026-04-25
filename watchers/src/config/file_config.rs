@@ -14,6 +14,7 @@ pub fn default_config() -> String {
 [server]
 # port = {}
 # host = "{}"
+# api-key = "{}"
 
 [awatcher]
 # idle-timeout-seconds={}
@@ -44,6 +45,7 @@ pub fn default_config() -> String {
 "#,
         defaults::port(),
         defaults::host(),
+        "",
         defaults::idle_timeout_seconds(),
         defaults::poll_time_idle_seconds(),
         defaults::poll_time_window_seconds(),
@@ -56,6 +58,8 @@ pub struct ServerConfig {
     pub port: u16,
     #[serde(default = "defaults::host")]
     pub host: String,
+    #[serde(default, rename = "api-key", alias = "api_key")]
+    pub api_key: Option<String>,
 }
 
 #[derive(Deserialize, DefaultFromSerde)]
@@ -163,6 +167,7 @@ mod tests {
 [server]
 port = 1234
 host = "http://address.com"
+api-key = "test-api-key"
 
 [awatcher]
 idle-timeout-seconds=14
@@ -188,6 +193,7 @@ replace-title = "Title"
 
         assert_eq!(1234, config.server.port);
         assert_eq!("http://address.com", config.server.host);
+        assert_eq!(Some("test-api-key".to_string()), config.server.api_key);
 
         assert_eq!(14, config.client.idle_timeout_seconds);
         assert_eq!(13, config.client.poll_time_idle_seconds);
@@ -236,6 +242,7 @@ match-app-id = "firefox"
 
         assert_eq!(defaults::port(), config.server.port);
         assert_eq!(defaults::host(), config.server.host);
+        assert_eq!(None, config.server.api_key);
 
         assert_eq!(
             defaults::idle_timeout_seconds(),
