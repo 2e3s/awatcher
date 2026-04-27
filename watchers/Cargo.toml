@@ -14,7 +14,7 @@ rstest = "0.26.1"
 tempfile = "3.13.0"
 
 [dependencies]
-aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust", rev = "656f3c9" }
+aw-client-rust = { git = "https://github.com/ActivityWatch/aw-server-rust", rev = "2875df5" }
 wayland-client = "0.31.7"
 wayland-protocols = { version = "0.32.6", features = ["staging", "client" ]}
 wayland-protocols-plasma = { version = "0.3.5", features = ["client"] }
