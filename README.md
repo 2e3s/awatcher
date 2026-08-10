@@ -172,7 +172,7 @@ To track your activities in browsers install the plugin for your browser from
 
 The executable can be bundled with a tray icon, ActivityWatch server and, optionally, Web UI (if steps 1-2 are done):
 
-1. Clone and follow the instruction in [ActivityWatch/aw-webui@839366e](https://github.com/ActivityWatch/aw-webui/commit/839366e66f859faadd7f9128de3bea14b25ce4ae)
+1. Clone and follow the instructions [here](https://github.com/ActivityWatch/aw-webui#building)
 to build the "dist" folder, 
 1. Build the executable with `AW_WEBUI_DIR=/absolute/path/to/dist` and `--features=bundle`.
 
