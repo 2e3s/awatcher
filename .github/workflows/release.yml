@@ -61,8 +61,19 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: target/release/awatcher-bundle.zip
 
+      # cargo-generate-rpm packages whatever is currently in target/release/awatcher
+      - run: cargo generate-rpm --variant=bundle
+
       - name: cargo build bare
         run: cargo build --release
+
+      - run: cargo generate-rpm --variant=module
+      - name: Upload bundle RPM to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file_glob: true
+          file: target/generate-rpm/*.rpm
 
       - run: mv awatcher aw-awatcher
         working-directory: target/release
@@ -89,12 +100,3 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file_glob: true
           file: target/debian/aw-awatcher*.deb
-
-      - run: cargo generate-rpm --variant=bundle
-      - run: cargo generate-rpm --variant=module
-      - name: Upload bundle RPM to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file_glob: true
-          file: target/generate-rpm/*.rpm
