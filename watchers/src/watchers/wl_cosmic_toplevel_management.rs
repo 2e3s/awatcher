@@ -197,10 +197,10 @@ impl Dispatch<ZcosmicToplevelHandleV1, ()> for ToplevelState {
             let id = id.clone();
             if let CosmicHandleEvent::State { state } = event {
                 // State is encoded as an array of u32 values (4 bytes each)
-                let activated = state.chunks_exact(4).any(|chunk| {
-                    let value = u32::from_ne_bytes(chunk[0..4].try_into().unwrap());
-                    value == CosmicHandleState::Activated as u32
-                });
+                let activated =
+                    state.as_chunks::<4>().0.iter().any(|chunk| {
+                        u32::from_ne_bytes(*chunk) == CosmicHandleState::Activated as u32
+                    });
 
                 window.activated = activated;
 
