@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context};
 use chrono::TimeDelta;
 use serde::Deserialize;
 use serde_default::DefaultFromSerde;
-use std::{fs, io::ErrorKind, path::PathBuf};
+use std::{fs, io::ErrorKind, path::Path, path::PathBuf};
 
 use crate::config::defaults;
 
@@ -28,6 +28,10 @@ pub fn default_config() -> String {
 # - ".*" matches any number of any characters
 # - ".+" matches 1 or more any characters.
 # - "word" is an exact match.
+# - To match a special character literally, escape it with a backslash.
+#   In TOML, sa backslash in a double-quoted string is an escape character:
+#   - match-app-id = 'org\.kde\.Dolphin'
+#   - match-app-id = "org\\.kde\\.Dolphin".
 # [[awatcher.filters]]
 # match-app-id = "navigator"
 # match-title = ".*Firefox.*"
@@ -99,6 +103,22 @@ pub struct FileConfig {
     pub config_file: PathBuf,
 }
 
+fn parse_config(config_content: &str, config_path: &Path) -> anyhow::Result<FileConfig> {
+    toml::from_str::<FileConfig>(config_content).map_err(|e| {
+        let mut msg = format!(
+            "Failed to parse the config file at {}: {e}",
+            config_path.display()
+        );
+        if e.message().contains("escaped value") {
+            msg.push_str(
+                "\nHint: the config file is TOML, where a backslash in a double-quoted string is an escape character.\n\
+                 Use single-quoted (literal) TOML string, or double the backslash in a double-quoted string",
+            );
+        }
+        anyhow::anyhow!("{msg}")
+    })
+}
+
 impl FileConfig {
     pub fn new(config_override: Option<PathBuf>) -> anyhow::Result<Self> {
         let is_config_overridden = config_override.is_some();
@@ -125,7 +145,7 @@ impl FileConfig {
                 format!("Impossible to read config file {}", config_path.display())
             })?;
 
-            toml::from_str(&config_content)?
+            parse_config(&config_content, &config_path)?
         } else {
             if is_config_overridden {
                 anyhow::bail!("Config file is not accessible at {}", config_path.display());
@@ -257,6 +277,89 @@ match-app-id = "firefox"
         );
 
         assert_eq!(0, config.client.filters.len());
+    }
+
+    #[rstest]
+    fn regex_backslash_in_single_quoted_string() {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(
+            file,
+            r#"
+[[awatcher.filters]]
+match-app-id = 'org\.kde\.kwrite'
+match-title = '.*\*.*'
+        "#
+        )
+        .unwrap();
+
+        let config = FileConfig::new(Some(file.path().to_path_buf())).unwrap();
+        assert_eq!(1, config.client.filters.len());
+        let filter = &config.client.filters[0];
+        // The backslashes must reach the regex as-is: '.' and '*' match literally
+        assert!(matches!(
+            filter.apply("org.kde.kwrite", "a*b"),
+            FilterResult::Match
+        ));
+        assert!(matches!(
+            filter.apply("orgXkdeXkwrite", "a*b"),
+            FilterResult::Skip
+        ));
+        assert!(matches!(
+            filter.apply("org.kde.kwrite", "ab"),
+            FilterResult::Skip
+        ));
+    }
+
+    #[rstest]
+    fn regex_backslash_in_double_quoted_string() {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(
+            file,
+            "\n[[awatcher.filters]]\nmatch-app-id = \"org\\\\.kde\\\\.kwrite\"\n"
+        )
+        .unwrap();
+
+        let config = FileConfig::new(Some(file.path().to_path_buf())).unwrap();
+        assert_eq!(1, config.client.filters.len());
+        assert!(matches!(
+            config.client.filters[0].apply("org.kde.kwrite", "any"),
+            FilterResult::Match
+        ));
+        assert!(matches!(
+            config.client.filters[0].apply("orgXkdeXkwrite", "any"),
+            FilterResult::Skip
+        ));
+    }
+
+    #[rstest]
+    fn invalid_escape_in_double_quoted_string() {
+        let mut file = NamedTempFile::new().unwrap();
+        // A single backslash in a double-quoted TOML string is an invalid escape
+        write!(
+            file,
+            "\n[[awatcher.filters]]\nmatch-app-id = \"org\\.kde\"\n"
+        )
+        .unwrap();
+
+        let config = FileConfig::new(Some(file.path().to_path_buf()));
+        let err = match config {
+            Err(e) => e.to_string(),
+            Ok(_) => panic!("expected a parse error"),
+        };
+        let path = file.path().display().to_string();
+        assert!(
+            err.contains("Failed to parse the config file at"),
+            "no path in error: {err}"
+        );
+        assert!(err.contains(path.as_str()), "no path in error: {err}");
+        assert!(
+            err.contains("org\\.kde"),
+            "the offending value is not shown: {err}"
+        );
+        assert!(
+            err.contains("single-quoted"),
+            "no escape hint in error: {err}"
+        );
     }
 
     #[rstest]

@@ -101,8 +101,6 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
         ])
         .get_matches();
 
-    let config = new_with_cli(&matches)?;
-
     let verbosity = match matches.get_count("verbosity") {
         0 => LevelFilter::Error,
         1 => LevelFilter::Warn,
@@ -111,6 +109,8 @@ pub fn from_cli() -> anyhow::Result<RunnerConfig> {
         _ => LevelFilter::Trace,
     };
     setup_logger(verbosity)?;
+
+    let config = new_with_cli(&matches)?;
 
     let api_key = resolve_api_key(matches.get_one("api-key").cloned(), &config);
 

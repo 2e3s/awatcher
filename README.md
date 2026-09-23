@@ -120,7 +120,10 @@ Matches are case sensitive regular expressions between implicit ^ and $:
 - `.*` matches any number of any characters
 - `.+` matches 1 or more any characters.
 - `word` is an exact match.
-- Use escapes `\` to match special characters, e.g. `org\.kde\.Dolphin`
+- Use escapes `\` to match special characters literally, e.g. `org\.kde\.Dolphin`.
+  The config file is TOML, where a backslash in a double-quoted string is an escape character itself,
+  so keep it as-is by using a single-quoted (literal) string, e.g. `match-app-id = 'org\.kde\.Dolphin'`,
+  or double the backslash in a double-quoted string, e.g. `match-app-id = "org\\.kde\\.Dolphin"`.
 
 #### Captures
 
