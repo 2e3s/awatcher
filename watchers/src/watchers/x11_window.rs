@@ -22,6 +22,7 @@ impl WindowWatcher {
     ) -> anyhow::Result<()> {
         let mut extra_data = HashMap::new();
         extra_data.insert("wm_instance".to_string(), wm_instance.to_string());
+        extra_data.insert("status".to_string(), client.afk_status());
         client
             .send_active_window_with_extra(app_id, title, Some(extra_data))
             .await
