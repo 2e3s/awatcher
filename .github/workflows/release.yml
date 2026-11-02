@@ -1,6 +1,8 @@
 name: Release
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 on:
   push:
     tags:
@@ -55,11 +57,6 @@ jobs:
 
       - run: zip "awatcher-bundle.zip" awatcher
         working-directory: target/release
-      - name: Upload awatcher-bundle to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/release/awatcher-bundle.zip
 
       # cargo-generate-rpm packages whatever is currently in target/release/awatcher
       - run: cargo generate-rpm --variant=bundle
@@ -68,35 +65,37 @@ jobs:
         run: cargo build --release
 
       - run: cargo generate-rpm --variant=module
-      - name: Upload bundle RPM to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file_glob: true
-          file: target/generate-rpm/*.rpm
 
       - run: mv awatcher aw-awatcher
         working-directory: target/release
       - run: zip "aw-awatcher.zip" "aw-awatcher"
         working-directory: target/release
-      - name: Upload awatcher to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/release/aw-awatcher.zip
 
       - run: cargo deb --variant=bundle
-      - name: Upload bundle deb to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file_glob: true
-          file: target/debian/awatcher*.deb
 
       - run: cargo deb --variant=module
-      - name: Upload module deb to release
-        uses: svenstaro/upload-release-action@v2
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file_glob: true
-          file: target/debian/aw-awatcher*.deb
+          subject-path: |
+            target/release/awatcher-bundle.zip
+            target/release/aw-awatcher.zip
+            target/generate-rpm/*.rpm
+            target/debian/*.deb
+
+      # Assets go to a draft release, which is published manually after editing the notes.
+      # With release immutability enabled, assets can't be added after publishing.
+      - name: Upload to draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" > /dev/null 2>&1 ||
+            gh release create "$TAG" --draft --verify-tag --title "$TAG" --generate-notes
+          gh release upload "$TAG" --clobber \
+            target/release/awatcher-bundle.zip \
+            target/release/aw-awatcher.zip \
+            target/generate-rpm/*.rpm \
+            target/debian/*.deb
