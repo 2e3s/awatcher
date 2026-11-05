@@ -12,6 +12,8 @@ The bundled executable can be used independently as it contains the server, UI a
 
 The binaries for the bundle, bundled DEB/RPM and ActivityWatch watchers replacement can be downloaded from
 [releases](https://github.com/2e3s/awatcher/releases).
+Release assets are built by GitHub Actions with [build provenance attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations),
+which can be verified with `gh attestation verify <file> -R 2e3s/awatcher`.
 At this moment, neither Flatpak nor AppImage support quering Wayland activity.
 
 ### Module for ActivityWatch
