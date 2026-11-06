@@ -7,12 +7,15 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::error::Error;
 use std::future::Future;
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 
 pub struct ReportClient {
     pub client: AwClient,
     pub config: Config,
     idle_bucket_name: String,
     active_window_bucket_name: String,
+    is_idle: AtomicBool,
+    last_idle_update: AtomicI64,
 }
 
 impl ReportClient {
@@ -37,6 +40,8 @@ impl ReportClient {
             config,
             idle_bucket_name,
             active_window_bucket_name,
+            is_idle: AtomicBool::new(true),
+            last_idle_update: AtomicI64::new(0),
         })
     }
 
@@ -98,8 +103,22 @@ impl ReportClient {
             .with_context(|| "Failed to send heartbeat")
     }
 
+    pub fn afk_status(&self) -> String {
+        let staleness_limit = self.config.idle_timeout.num_seconds() * 2;
+        let last_update = self.last_idle_update.load(Ordering::Relaxed);
+        let age = Utc::now().timestamp() - last_update;
+
+        if age > staleness_limit || self.is_idle.load(Ordering::Relaxed) {
+            "afk".to_string()
+        } else {
+            "not-afk".to_string()
+        }
+    }
+
     pub async fn send_active_window(&self, app_id: &str, title: &str) -> anyhow::Result<()> {
-        self.send_active_window_with_extra(app_id, title, None)
+        let mut extra = HashMap::new();
+        extra.insert("status".to_string(), self.afk_status());
+        self.send_active_window_with_extra(app_id, title, Some(extra))
             .await
     }
 
@@ -191,16 +210,25 @@ impl ReportClient {
     }
 
     pub async fn handle_idle_status(&self, status: Status) -> anyhow::Result<()> {
+        self.last_idle_update
+            .store(Utc::now().timestamp(), Ordering::Relaxed);
+
         match status {
             Status::Idle {
                 changed,
                 last_input_time,
                 duration,
-            } => self.idle(changed, last_input_time, duration).await,
+            } => {
+                self.is_idle.store(true, Ordering::Relaxed);
+                self.idle(changed, last_input_time, duration).await
+            }
             Status::Active {
                 changed,
                 last_input_time,
-            } => self.non_idle(changed, last_input_time).await,
+            } => {
+                self.is_idle.store(false, Ordering::Relaxed);
+                self.non_idle(changed, last_input_time).await
+            }
         }
     }
 

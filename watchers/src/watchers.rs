@@ -137,17 +137,32 @@ pub async fn run_first_supported(client: Arc<ReportClient>, watcher_type: &Watch
     let supported_watcher = filter_first_supported(&client, watcher_type).await;
     if let Some(mut watcher) = supported_watcher {
         info!("Starting {watcher_type} watcher");
+
+        const MAX_CONSECUTIVE_FAILURES: u32 = 10;
+        let mut consecutive_failures: u32 = 0;
+
         loop {
             let sleep_time = watcher_type.sleep_time(&client.config);
 
             match timeout(sleep_time, watcher.run_iteration(&client)).await {
-                Ok(Ok(())) => { /* Successfully completed. */ }
+                Ok(Ok(())) => {
+                    consecutive_failures = 0;
+                }
                 Ok(Err(e)) => {
                     error!("Error on {watcher_type} iteration: {e}");
+                    consecutive_failures += 1;
                 }
                 Err(_) => {
                     error!("Timeout on {watcher_type} iteration after {sleep_time:?}");
+                    consecutive_failures += 1;
                 }
+            }
+
+            if consecutive_failures >= MAX_CONSECUTIVE_FAILURES {
+                error!(
+                    "{watcher_type} watcher failed {consecutive_failures} times in a row, giving up to let the process restart"
+                );
+                return false;
             }
 
             sleep(sleep_time).await;
