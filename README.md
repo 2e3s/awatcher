@@ -57,6 +57,15 @@ as soon as the environment has the necessary interfaces.
 
 > [!IMPORTANT]
 > Gnome watcher in Wayland requires [this extension](https://extensions.gnome.org/extension/5592/focused-window-d-bus/) to be installed.
+> If browser integration is unavailable, install it from a terminal:
+> ```sh
+> gnome-extensions list | grep -Fxq 'focused-window-dbus@flexagoon.com' || gdbus call --session \
+>   --dest org.gnome.Shell.Extensions \
+>   --object-path /org/gnome/Shell/Extensions \
+>   --method org.gnome.Shell.Extensions.InstallRemoteExtension \
+>   focused-window-dbus@flexagoon.com
+> ```
+> Confirm the GNOME Shell prompt. If `gdbus` reports `NoReply`, check `gnome-extensions list --enabled`; the extension may already be enabled.
 > Also, if you have problems with tray icons in Gnome, you may try [this extension](https://extensions.gnome.org/extension/615/appindicator-support/) for the bundle (StatusNotifierItem specification).
 
 [^1]: A few other DEs besides Sway may implement [wlr foreign toplevel protocol](https://wayland.app/protocols/wlr-foreign-toplevel-management-unstable-v1),
