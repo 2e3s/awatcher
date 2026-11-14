@@ -33,6 +33,39 @@ impl ToplevelState {
             current_window_id: None,
         }
     }
+
+    fn update_activation(&mut self, id: String, states: &[u8]) {
+        let activated = states.chunks_exact(4).any(|bytes| {
+            u32::from_ne_bytes(bytes.try_into().unwrap()) == HandleState::Activated as u32
+        });
+        if activated {
+            self.current_window_id = Some(id);
+        } else if self.current_window_id.as_deref() == Some(id.as_str()) {
+            self.current_window_id = None;
+        }
+    }
+}
+
+#[cfg(test)]
+mod activation_tests {
+    use super::*;
+
+    #[test]
+    fn deactivation_clears_current_window() {
+        let mut state = ToplevelState::new();
+        state.update_activation("a".into(), &(HandleState::Activated as u32).to_ne_bytes());
+        state.update_activation("a".into(), &[]);
+        assert_eq!(state.current_window_id, None);
+    }
+
+    #[test]
+    fn late_deactivation_does_not_clear_new_focus() {
+        let mut state = ToplevelState::new();
+        state.update_activation("a".into(), &(HandleState::Activated as u32).to_ne_bytes());
+        state.update_activation("b".into(), &(HandleState::Activated as u32).to_ne_bytes());
+        state.update_activation("a".into(), &[]);
+        assert_eq!(state.current_window_id.as_deref(), Some("b"));
+    }
 }
 
 impl Dispatch<ZwlrForeignToplevelManagerV1, ()> for ToplevelState {
@@ -91,10 +124,7 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for ToplevelState {
                 }
                 HandleEvent::State { state } => {
                     trace!("State is changed for {id}: {state:?}");
-                    if state.contains(&(HandleState::Activated as u8)) {
-                        trace!("Window is activated: {id}");
-                        toplevel_state.current_window_id = Some(id);
-                    }
+                    toplevel_state.update_activation(id, &state);
                 }
                 HandleEvent::Done => trace!("Done: {id}"),
                 HandleEvent::Closed => {
@@ -124,11 +154,11 @@ pub struct WindowWatcher {
 
 impl WindowWatcher {
     async fn send_active_window(&self, client: &Arc<ReportClient>) -> anyhow::Result<()> {
-        let active_window_id = self
-            .toplevel_state
-            .current_window_id
-            .as_ref()
-            .ok_or(anyhow!("Current window is unknown"))?;
+        // No focused toplevel is normal on an empty workspace or a layer surface.
+        // Do not extend the previous application's event across that interval.
+        let Some(active_window_id) = self.toplevel_state.current_window_id.as_ref() else {
+            return Ok(());
+        };
         let active_window = self
             .toplevel_state
             .windows
